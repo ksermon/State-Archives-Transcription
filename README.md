@@ -12,7 +12,7 @@
 Use your preferred methodology to create a local version of the github repository:
 
 - use Github Desktop
-- clone within our IDE:
+- clone within your IDE:
 ```bash
 git clone https://github.com/ksermon/State-Archives-Transcription.git
 cd State-Archives-Transcription
