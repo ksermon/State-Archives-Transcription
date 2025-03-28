@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}My HCR App{% endblock %}</title>
+    <title>{% block title %}SA Transcription App{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <header>
-        <h1>Handwritten Content Recognition</h1>
+        <h1>WA State Archives Transcription Project</h1>
     </header>
     <main>
         {% with messages = get_flashed_messages() %}
@@ -22,7 +22,7 @@
         {% block content %}{% endblock %}
     </main>
     <footer>
-        <p>&copy; 2025 My HCR App</p>
+        <p>&copy; 2025 SA Transcription App</p>
     </footer>
 </body>
 </html>

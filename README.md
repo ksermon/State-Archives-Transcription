@@ -81,6 +81,35 @@ flask run
 
 The app can now be opened at http://127.0.0.1:5000/.
 
+## Quick Start (Subsequent Runs)
+
+Follow these steps after the initial setup:
+
+### Linux/macOS
+1. Open a terminal and navigate to the project root.
+2. Activate your virtual environment with:
+   ```bash
+   source venv/bin/activate
+   ```
+3. Start the server using:
+   ```bash
+   flask run
+   ```
+4. Open your browser at `http://127.0.0.1:5000`.
+
+### Windows
+1. Open Command Prompt or PowerShell and navigate to the project root.
+2. Activate your virtual environment with:
+   ```batch
+   venv\Scripts\activate
+   ```
+3. Start the server using:
+   ```batch
+   flask run
+   ```
+4. Open your browser at `http://127.0.0.1:5000`.
+
+
 ## Production Deployment
 Leaving this link here for deployment options later:
 https://flask.palletsprojects.com/en/stable/deploying/

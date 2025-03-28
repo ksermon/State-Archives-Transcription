@@ -1,12 +1,9 @@
-if ! command -v pip &> /dev/null; then
-    echo "pip not found. Please install pip before proceeding."
-    exit 1
-fi
-if ! command -v virtualenv &> /dev/null; then
-    echo "virtualenv not found. Installing virtualenv..."
-    pip install virtualenv
-fi
+#!/bin/bash
+command -v pip >/dev/null 2>&1 || { echo "pip is required"; exit 1; }
+command -v virtualenv >/dev/null 2>&1 || pip install virtualenv
+
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
-echo "Setup complete. Activate your environment with 'source venv/bin/activate' and run 'python run.py'."
+
+flask run
