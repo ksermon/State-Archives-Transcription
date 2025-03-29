@@ -1,8 +1,9 @@
 import os
-from flask import render_template, request, redirect, flash
+from flask import render_template, request, redirect, flash,url_for
 from werkzeug.utils import secure_filename
 from app.main import bp
 from config import Config
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -11,6 +12,7 @@ def allowed_file(filename):
 @bp.route('/', methods=['GET', 'POST'])
 def index():
     transcribed_text = ""
+    image_url = None  
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part in the request.')
@@ -25,6 +27,9 @@ def index():
             # Make sure the upload folder exists
             os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
             file.save(file_path)
+            if filename.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'bmp')):
+                 image_url = url_for('static', filename=f'uploads/{filename}')
             # TODO: Integrate  HCR transcription here.
             transcribed_text = "[Transcribed text will appear here]."
-    return render_template('index.html', transcribed_text=transcribed_text)
+    return render_template('index.html', transcribed_text=transcribed_text,image_url=image_url)
+
