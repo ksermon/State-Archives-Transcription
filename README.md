@@ -56,6 +56,46 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+#### Local Model Setuo ####
+This project is using `microsoft/trocr-base-handwritten` model.
+
+Step-by-step Instructions
+1. Create the model directory:
+```bash
+mkdir -p app/models/trocr-base-handwritten-local
+```
+2. Download the following files from Hugging Face:
+- config.json
+- preprocessor_config.json
+- pytorch_model.bin
+
+Place all three files into the folder:
+
+```bash
+app/models/trocr-base-handwritten-local/
+```
+Optional: Use Hugging Face CLI (if available)
+If you have transformers-cli installed:
+
+```bash
+transformers-cli download microsoft/trocr-base-handwritten
+```
+Then manually move the downloaded files to:
+
+```bash
+app/models/trocr-base-handwritten-local/
+```
+**Directory Structure Example**
+```
+State-Archives-Transcription/
+├── app/
+│   └── models/
+│       └── trocr-base-handwritten-local/
+│           ├── config.json
+│           ├── preprocessor_config.json
+│           └── pytorch_model.bin
+```
+
 #### Set environment variables and run application
 
 **- On Linux/Mac:**

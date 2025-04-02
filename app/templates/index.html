@@ -1,27 +1,73 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload File{% endblock %}
-
-{% block content %}
-<div class="content">
-<div class="center">
-    <h2>Upload an Image or PDF</h2>
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit">Upload and Transcribe</button>
-    </form>
-    {% if image_url %}
-        <img src="{{ image_url }}"  class="uploaded-image">
-    {% endif %}
-</div>
-
-<div class="right">
-    {% if transcribed_text %}
-        <h3>Transcription Result</h3>
-        <p>{{ transcribed_text }}</p>
-    {% endif %}
-</div>
-
-</div>
+{% block title %}
+  Upload File
 {% endblock %}
 
+{% block content %}
+  <style>
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    #loading p {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .right p {
+        padding-left: 10px;
+        border-left: 2px solid #000; 
+      }
+
+    .right h3{
+        padding-right: 10px;
+    }
+  </style>
+
+  <div class="content">
+    <div id="loading" style="display: none; position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 9999;">
+      <div class="spinner"></div>
+      <p>Transcribing...</p>
+    </div>
+    <div class="center">
+      <h2>Upload an Image or PDF</h2>
+      <form method="post" enctype="multipart/form-data" onsubmit="showLoading()">
+        <input type="file" name="file" required />
+        <button type="submit">Upload and Transcribe</button>
+      </form>
+      {% if image_url %}
+        <img src="{{ image_url }}" class="uploaded-image" />
+      {% endif %}
+    </div>
+
+    <div class="right">
+      {% if transcribed_text %}
+        <h3>Transcription Result</h3>
+        <p>{{ transcribed_text }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block'
+    }
+  </script>
+{% endblock %}

@@ -3,6 +3,7 @@ from flask import render_template, request, redirect, flash,url_for
 from werkzeug.utils import secure_filename
 from app.main import bp
 from config import Config
+from app.utils.ocr_engine import run_ocr_engine
 
 
 def allowed_file(filename):
@@ -30,6 +31,8 @@ def index():
             if filename.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'bmp')):
                  image_url = url_for('static', filename=f'uploads/{filename}')
             # TODO: Integrate  HCR transcription here.
-            transcribed_text = "[Transcribed text will appear here]."
+            # TRocr recognition engine
+            transcribed_text = run_ocr_engine(file_path)
+            # transcribed_text = "Testing TextTesting TextTesting TextTesting TextTesting Text"
     return render_template('index.html', transcribed_text=transcribed_text,image_url=image_url)
 
