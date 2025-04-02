@@ -1,0 +1,21 @@
+name: Backend Feature
+description: For new backend functions, APIs, or data processing logic.
+title: "[Backend] <feature name>"
+labels: ["type: feature", "area: backend"]
+body:
+  - type: textarea
+    attributes:
+      label: Functionality
+      description: What functionality should this provide?
+  - type: textarea
+    attributes:
+      label: Inputs & Outputs
+      description: Describe expected input types and output formats.
+  - type: textarea
+    attributes:
+      label: Integration Notes
+      description: Any relevant details for how this connects to other parts of the app.
+  - type: textarea
+    attributes:
+      label: Tests/Verification
+      description: How will this be tested or verified?

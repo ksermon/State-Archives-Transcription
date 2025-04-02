@@ -1,0 +1,21 @@
+name: Frontend Feature
+description: For implementing or improving UI components or frontend logic.
+title: "[UI] <feature name>"
+labels: ["type: feature", "area: frontend"]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What should the component do? Any specific behaviour?
+  - type: textarea
+    attributes:
+      label: Wireframes or Mockups
+      description: Include Figma link or screenshot (optional).
+  - type: textarea
+    attributes:
+      label: Dependencies
+      description: Does this need to connect to any backend or service?
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: What conditions should be met for this to be considered complete?

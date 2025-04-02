@@ -1,0 +1,21 @@
+name: Bug Report
+description: Report a broken feature or unexpected behaviour.
+title: "[Bug] <summary>"
+labels: ["type: bug"]
+body:
+  - type: textarea
+    attributes:
+      label: What Happened?
+      description: Describe what went wrong.
+  - type: textarea
+    attributes:
+      label: Expected Behaviour
+      description: What should have happened instead?
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Include file, input, or setup steps.
+  - type: textarea
+    attributes:
+      label: Notes / Logs
+      description: Include any relevant screenshots or console output.

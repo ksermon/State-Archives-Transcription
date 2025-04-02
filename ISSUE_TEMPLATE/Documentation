@@ -1,0 +1,21 @@
+name: Documentation Task
+description: Used to log non-code work like documentation or planning.
+title: "[Docs] <task>"
+labels: ["type: documentation"]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What is being documented or planned?
+  - type: textarea
+    attributes:
+      label: Location
+      description: Where should this be saved or updated?
+  - type: textarea
+    attributes:
+      label: Notes
+      description: Anything extra worth noting.
+  - type: markdown
+    attributes:
+        value: |
+            **Note:** After submitting, you can drag and drop files (e.g. screenshots, sample PDFs) into a comment or edit the issue to attach them.

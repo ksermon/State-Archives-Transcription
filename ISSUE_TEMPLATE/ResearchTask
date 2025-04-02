@@ -1,0 +1,21 @@
+name: Research Task
+description: For tasks requiring investigation, comparison, or design validation.
+title: "[Research] <title>"
+labels: ["type: research"]
+body:
+  - type: textarea
+    attributes:
+      label: Objective
+      description: What is the goal of this research?
+  - type: textarea
+    attributes:
+      label: Resources Reviewed
+      description: List useful links, papers, or tools you checked.
+  - type: textarea
+    attributes:
+      label: Findings
+      description: Summarise what you discovered and how it affects next steps.
+  - type: textarea
+    attributes:
+      label: Recommended Action
+      description: Suggest what should be done based on your findings.

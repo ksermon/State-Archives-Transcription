@@ -1,0 +1,21 @@
+name: Integration Task
+description: Used when linking parts of the system together or preparing the prototype.
+title: "[Integration] <task name>"
+labels: ["type: integration"]
+body:
+  - type: textarea
+    attributes:
+      label: Components to Connect
+      description: What components are involved in this integration?
+  - type: textarea
+    attributes:
+      label: Expected Flow
+      description: Describe the data/control flow between components.
+  - type: textarea
+    attributes:
+      label: Blockers
+      description: Any existing issues that must be resolved before this works.
+  - type: textarea
+    attributes:
+      label: How to Test
+      description: Describe how to verify integration success.
