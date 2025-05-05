@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}File View{% endblock %}
+
+{% block content %}
+<div class="content">
+  <h2>File: {{ name }}</h2>
+  <div class="file-display">
+    <iframe src="data:application/pdf;base64,{{ content }}" width="600" height="400"></iframe>
+  </div>
+  <div class="transcription">
+    <h3>Transcription</h3>
+    <p>{{ transcription }}</p>
+  </div>
+  <a href="{{ url_for('main.file_list') }}" class="button">Back to File List</a>
+</div>
+{% endblock %}
