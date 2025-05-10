@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/fileview.css') }}" />
+{% endblock extra_css%}
+
+{% block content %}
+  <div class="main-box">
+    <h1 class="file-title">Title of the Documents</h1>
+    <div class="description-block">
+      <span class="upload-time">TODO: Display Upload Time Here</span>
+      <span class="file-type">TODO:Display Type Here</span>
+      <p class="description">Display Description Text Here</p>
+    </div>
+
+    <div class="container">
+      <div class="pdf-viewer">
+        <canvas class="pdf-canvas"></canvas>
+
+        <div class="pdf-controller">
+          <button>&laquo; Prev</button>
+          <span class="pages">Page 1 of 10</span>
+          <button>Next &raquo;</button>
+          <input type="number" min="1" placeholder="Go to page" class="input"/>
+          <button>Go</button>
+        </div>
+      </div>
+
+      <div class="ocr-box">
+        <h2>Transcribed Text</h2>
+        <div class="transcripts">This is a temporary holder for transcripts.</div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

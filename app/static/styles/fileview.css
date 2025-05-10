@@ -1,0 +1,147 @@
+.main-box {
+    width: 95%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2em;
+    color: #eee;
+    min-height: 800px;
+    box-sizing: border-box;
+}
+
+.file-title {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 1em;
+    text-align: left;
+}
+
+.description-block .upload-time,
+.description-block .file-type {
+    margin-right: 1.5em;
+    font-weight: 500;
+}
+
+.description-block .description {
+    margin-top: 0.5em;
+    color: #eee;
+}
+
+.container {
+    box-sizing: border-box;
+    margin: 0 auto;
+    margin-bottom: 40px;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 2rem 3rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 1em;
+    align-items: stretch;
+    overflow-x: auto;
+    width: 100%;
+}
+
+.pdf-viewer {
+    flex: 1;
+    background-color: #ccc;
+    color: #353535;
+    padding: 1em;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.pdf-canvas {
+    width: 100%;
+    min-height: 600px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: white;
+    display: block;
+    margin: 0 auto;
+}
+
+.pdf-controller {
+    margin-top: 1em;
+    display: flex;
+    gap: 0.5em;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+button {
+    margin: 12px;
+    height: 50px;
+    min-width: 100px;
+    flex: 1 1 auto;
+    max-width: 200px;
+    border-radius: 10px;
+    background: #333;
+    justify-content: center;
+    align-items: center;
+    box-shadow: -5px -5px 15px #444, 5px 5px 15px #222,
+        inset 5px 5px 10px #444, inset -5px -5px 10px #222;
+    font-family: "Damion", cursive;
+    cursor: pointer;
+    border: none;
+    font-size: 16px;
+    color: rgb(161, 161, 161);
+    transition: 500ms;
+}
+
+button:hover {
+    box-shadow: -5px -5px 15px #444, 5px 5px 15px #222, inset 5px 5px 10px #222,
+        inset -5px -5px 10px #444;
+    color: #d6d6d6;
+    transition: 500ms;
+}
+
+
+
+/* From Uiverse.io by Cksunandh */
+.pdf-controller .input {
+    margin: 30px;
+    background: #333;
+    border: 1px solid #353535;
+    outline: none;
+    max-width: 200px;
+    padding: 11px 23px;
+    font-size: 16px;
+    border-radius: 50px;
+    color: rgb(161, 161, 161);
+    box-shadow: -5px -5px 15px #444, 5px 5px 15px #222, inset 5px 5px 10px #444,
+        inset -5px -5px 10px #222;
+}
+
+.ocr-box {
+    background-color: #2c2c2c;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.ocr-box h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.transcripts {
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #ddd;
+    line-height: 1.6;
+    overflow-y: auto;
+    flex: 1;
+}
