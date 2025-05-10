@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/herosection.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <div class="hero-wrapper">
+    <div class="hero-container">
+      <div class="hero-left">
+        <h1 class="hero-title">Transcribe the Past, Access the Future</h1>
+        <p class="hero-subtitle">Effortlessly upload, transcribe, and explore WA State handwritten archives.</p>
+        <div class="hero-buttons">
+          <a class="hero-button" href="{{ url_for('main.list') }}">
+            <span>Get Started</span>
+          </a>
+        </div>
+      </div>
+      <div class="hero-right">
+        <img src="{{ url_for('static', filename='image/poster.png') }}" alt="Archives Sample" />
+      </div>
+    </div>
+  </div>
+{% endblock %}
