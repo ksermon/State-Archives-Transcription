@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/filelist.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/document_card.css')}}">
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="filelist-header">
+        <h1 class="filelist-title">Uploaded Documents</h1>
+        <p class="filelist-subtitle">Browse and manage your uploaded files. Click any card to view details or take further actions.</p>
+    </div>
+
+    <div class="container">
+        <div class="filter-bar">
+            <p>TODO: Filter Components</p>
+        </div>
+
+        <div class="card-grid">
+            
+            {% for i in range(10) %}
+                {% include 'components/document_card.html' %}
+            {% endfor %}
+                
+        </div>
+
+        <div class="pagination">
+            <button disabled>&laquo; Prev</button>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>Next &raquo;</button>
+        </div>
+    </div>
+{% endblock content %}
