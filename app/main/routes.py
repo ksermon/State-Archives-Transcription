@@ -29,7 +29,7 @@ def file_list():
 def file_upload():
     if request.method == "GET":
         # Render the file upload page for GET requests
-        return render_template("upload.html")
+        return render_template("FileUpload.html")
     # Handle file upload and save to the database
     if "file" not in request.files:
         flash("No file part in the request.")
