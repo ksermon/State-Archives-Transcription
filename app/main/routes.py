@@ -94,19 +94,3 @@ def search_files():
         flash("No files matched your search.")
 
     return render_template("search_results.html", files=search_results, query=query)
-
-@bp.route("/herosection")
-def herosection():
-    return render_template('herosection.html')
-
-@bp.route("/list")
-def list():
-    return render_template('FileList.html')
-
-@bp.route('/viewer')
-def viewer():
-    return render_template('FileView.html')
-
-@bp.route('/up')
-def up():
-    return render_template('upload.html')
