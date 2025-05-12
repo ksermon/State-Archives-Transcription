@@ -1,4 +1,5 @@
 <!-- From Uiverse.io by Kagamiie -->
+<a href="{{ url_for('main.file_view', name=file.name) }}" class="card-link">
 <article class="card">
   <div class="card-img">
     <div class="card-imgs pv delete"></div>
@@ -6,9 +7,10 @@
 
   <div class="project-info">
     <div class="flex">
-      <div class="project-title">File Title</div>
+      <div class="project-title">{{ file.name }}</div>
       <span class="tag">type</span>
     </div>
-    <span class="lighter">Here is the place for description. Description should be required to filled when upload. It can be useful for searching module.</span>
+    <span class="lighter">{{ file.description or "No description available." }}</span>
   </div>
 </article>
+</a>
