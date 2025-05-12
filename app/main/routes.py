@@ -93,4 +93,4 @@ def search_files():
     if not search_results:
         flash("No files matched your search.")
 
-    return render_template("search_results.html", files=search_results, query=query)
+    return render_template("SearchResults.html", files=search_results, query=query)
