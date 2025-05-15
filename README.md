@@ -119,6 +119,15 @@ $env:FLASK_ENV = "development"  # Optional: enables debug mode
 flask run
 ```
 
+### 3. Setting up DB
+
+```bash
+flask shell
+from app import db
+db.create_all()
+exit()
+```
+
 The app can now be opened at http://127.0.0.1:5000/.
 
 ## Quick Start (Subsequent Runs)

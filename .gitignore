@@ -1,1 +1,6 @@
 .qodo
+__pycache__
+.devcontainer
+app/static/uploads
+*.db
+app/models
