@@ -8,7 +8,7 @@
   <div class="upload-container">
     <h1 class="upload-title">Upload a Document</h1>
 
-    <form class="upload-form" method="POST" enctype="multipart/form-data" action="/upload">
+    <form class="upload-form" method="POST" enctype="multipart/form-data" action="{{ url_for('main.file_upload') }}">
       <label for="name">File Name</label>
       <input type="text" name="name" id="name" placeholder="Optional custom name" />
 
@@ -24,7 +24,7 @@
           <p>or</p>
           <span class="browse-button">Browse file</span>
         </div>
-        <input id="file" type="file" />
+        <input id="file" name="file" type="file" required/>
       </label>
 
       <button type="submit">Upload</button>

@@ -47,9 +47,8 @@
     background-color: #ddd;
     color: black;
     width: 100%;
-    max-width: 300px;
-    min-width: 180px;
-    max-height: 330px;
+    width: 200px;
+    height: 330px;
     border-radius: 8px;
     box-shadow: rgba(50, 50, 93, 0.15) 0px 20px 40px -10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
