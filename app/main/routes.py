@@ -6,6 +6,7 @@ from app import db
 from app.models import UploadedFile
 from config import Config
 from base64 import b64encode
+from app.utils.ocr_engine import run_ocr_engine
 
 
 def allowed_file(filename):
@@ -46,6 +47,7 @@ def file_upload():
         description = request.form.get("description", "")
         # TODO: Generate the transcription
         file_transcription = "placeholder"  # Placeholder for transcription logic
+        # can use run_ocr_engine(filepath) on an image
 
         # Save file info and content to the database
         db_file = UploadedFile(
