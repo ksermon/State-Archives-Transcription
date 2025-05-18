@@ -5,9 +5,9 @@ from app.main import bp
 from app import db
 from app.models import UploadedFile
 from config import Config
-from base64 import b64encode
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
+import base64
 
 
 def allowed_file(filename):
@@ -27,12 +27,13 @@ def file_list():
     return render_template("FileList.html", files=files)
 
 
+from app.models import UploadedFile, FilePage
+# ...existing imports...
+
 @bp.route("/upload", methods=["GET","POST"])
 def file_upload():
     if request.method == "GET":
-        # Render the file upload page for GET requests
         return render_template("FileUpload.html")
-    # Handle file upload and save to the database
     if "file" not in request.files:
         flash("No file part in the request.")
         return redirect(url_for("main.file_list"))
@@ -42,41 +43,68 @@ def file_upload():
         return redirect(url_for("main.file_list"))
     if file and allowed_file(file.filename):
         file_name = secure_filename(file.filename)
-        file_content = file.read()  # Read the binary content of the file
-        images = pdf_to_images_base64(file_content) #Store images into database
-        # Get custom name and decription
+        file_content = file.read()
+        images = pdf_to_images_base64(file_content)
         custom_name = request.form.get("name") or file_name
         description = request.form.get("description", "")
-        # TODO: Generate the transcription
-        file_transcription = "placeholder"  # Placeholder for transcription logic
-        # can use run_ocr_engine(filepath) on an image
 
-        # Save file info and content to the database
+        # Save the file record first
         db_file = UploadedFile(
-            name=custom_name, content=file_content, description=description,transcription=file_transcription,images=images
+            name=custom_name,
+            content=file_content,
+            description=description
         )
         db.session.add(db_file)
+        db.session.commit() 
+
+        # For each image, run OCR and save as FilePage
+        print(f"Number of images: {len(images)}")
+        for idx, img_base64 in enumerate(images):
+            transcription = run_ocr_engine(img_base64)
+            img_bytes = base64.b64decode(img_base64)
+            db_page = FilePage(
+                file_id=db_file.id,
+                page_number=idx + 1,
+                image=img_bytes,
+                transcription=transcription
+            )
+            db.session.add(db_page)
+            print(f"Page {idx + 1} added with transcription: {transcription}")
         db.session.commit()
 
         flash(f'File "{file_name}" uploaded successfully!')
-        return redirect(url_for("main.file_view", name=custom_name))
+        return redirect(url_for("main.file_view", file_id=db_file.id))
     else:
         flash("Invalid file type.")
         return redirect(url_for("main.file_list"))
 
 
-@bp.route("/view/<name>", methods=["GET"])
-def file_view(name):
-    # Retrieve file details and transcription from the database
-    uploaded_file = UploadedFile.query.filter_by(name=name).first()
+@bp.route("/view/<int:file_id>", methods=["GET"])
+def file_view(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
     if not uploaded_file:
-        abort(404)  # File not found
+        abort(404)
+
+    # Get all pages for this file, ordered by page_number
+    pages = FilePage.query.filter_by(file_id=uploaded_file.id).order_by(FilePage.page_number).all()
+    total_pages = len(pages)
+    page = int(request.args.get('page', 1))
+    if page < 1 or page > total_pages:
+        page = 1
+
+    current_page = pages[page - 1]
+    image_base64 = base64.b64encode(current_page.image).decode("utf-8")
+    transcription = current_page.transcription or "No transcription available."
+
     return render_template(
         "FileView.html",
+        file_id=uploaded_file.id,
         name=uploaded_file.name,
-        description = uploaded_file.description or "No description available.",
-        content=b64encode(uploaded_file.content).decode("utf-8"),
-        transcription=uploaded_file.transcription,
+        description=uploaded_file.description or "No description available.",
+        image=image_base64,
+        transcription=transcription,
+        page=page,
+        total_pages=total_pages,
     )
 
 @bp.route("/search", methods=["GET"])
@@ -98,27 +126,3 @@ def search_files():
         flash("No files matched your search.")
 
     return render_template("SearchResults.html", files=search_results, query=query)
-
-@bp.route("/transcribe/<name>", methods=["GET","POST"])
-def file_transcribe(name):
-
-    # get uploaded file from database
-    uploaded_file = UploadedFile.query.filter_by(name=name).first()
-    if not uploaded_file:
-        abort(404)  #
-
-    # convert pdf into images
-    images = uploaded_file.images
-    
-    total_pages = len(images)
-    page = int(request.args.get('page', 1))
-    if page < 1 or page > total_pages:
-        page = 1
-
-    image_to_show = images[page-1]
-    return render_template("TranscribeView.html",
-                           name=uploaded_file.name, 
-                           image=image_to_show, 
-                           images=images,
-                           page=page, total_pages=total_pages,
-                           content=b64encode(uploaded_file.content).decode("utf-8"),)
