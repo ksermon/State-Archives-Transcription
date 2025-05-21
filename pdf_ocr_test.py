@@ -1,4 +1,4 @@
-# Take in pdk, convert to images, run OCR on each image, and save the text output
+# Take in pdf, convert to images, run OCR on each image, and save the text output
 
 import os
 from pdf2image import convert_from_path
