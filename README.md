@@ -9,18 +9,19 @@
 ## Setup Instructions
 
 ### 1. Clone the Repository
-Use your preferred methodology to create a local version of the github repository:
-
-- use Github Desktop
-- clone within your IDE:
 ```bash
 git clone https://github.com/ksermon/State-Archives-Transcription.git
 cd State-Archives-Transcription
 ```
-[!NOTE]
-Unsure if the .git at the end is correct. Maybe try without if this is how you clone.
 
-### 2. Dev Deployment
+### 2.1 Docker Deployment
+
+1. Download Docker Desktop. 
+2. Use `docker compose up` to run the server. 
+
+It will automatically download any necessary dependencies, and will take longer the first time. 
+
+### 2.2 Manual Deployment
 
 After cloning the repository, for quick first time deployment:
 
@@ -56,7 +57,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-#### Local Model Setuo ####
+#### Local Model Setup ####
 This project is using `microsoft/trocr-base-handwritten` model.
 
 Step-by-step Instructions
@@ -119,7 +120,7 @@ $env:FLASK_ENV = "development"  # Optional: enables debug mode
 flask run
 ```
 
-### 3. Setting up DB
+#### Setting up DB
 
 ```bash
 flask shell
@@ -130,11 +131,11 @@ exit()
 
 The app can now be opened at http://127.0.0.1:5000/.
 
-## Quick Start (Subsequent Runs)
+#### Quick Start (Subsequent Runs)
 
 Follow these steps after the initial setup:
 
-### Linux/macOS
+**Linux/macOS**
 1. Open a terminal and navigate to the project root.
 2. Activate your virtual environment with:
    ```bash
@@ -146,7 +147,7 @@ Follow these steps after the initial setup:
    ```
 4. Open your browser at `http://127.0.0.1:5000`.
 
-### Windows
+**Windows**
 1. Open Command Prompt or PowerShell and navigate to the project root.
 2. Activate your virtual environment with:
    ```batch
