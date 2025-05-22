@@ -22,6 +22,7 @@ def process_single_image(image_path):
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(text)
 
+    # Clean up
     del processor, model, text
     gc.collect()
     torch.cuda.empty_cache()
@@ -32,9 +33,11 @@ if __name__ == "__main__":
     # Important for Windows to avoid hanging
     set_start_method("spawn", force=True)
 
-    print(f"[INFO] Starting batch OCR using {cpu_count()} cores...")
+    # Dont use all avaliable cores, leave 2 for system(OS)
+    usable_cores = cpu_count() - 2
+    print(f"[INFO] Starting batch OCR using {usable_cores} cores...")
 
-    with Pool(processes=cpu_count()-2) as pool:
+    with Pool(usable_cores) as pool:
         results = pool.map(process_single_image, image_paths)
 
     print(f"[INFO] Finished OCR on {len(results)} pages.")

@@ -8,7 +8,6 @@ def run_ocr_engine(image_path, processor, model):
     image = Image.open(image_path)
     preprocessed = preprocess_image(image)
     line_imgs = auto_slice_lines(preprocessed)
-    print(line_imgs)
     lines = recognize_batch_images(line_imgs, processor, model)
     
     # OCR per line using preloaded model
