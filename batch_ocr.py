@@ -1,3 +1,4 @@
+# Gets the OCR text from the images
 import os
 import gc
 import torch
