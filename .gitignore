@@ -5,3 +5,4 @@ app/static/uploads
 *.db
 app/models
 /venv
+test_data/pages/washingtondb-v1.0
