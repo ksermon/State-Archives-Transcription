@@ -3,9 +3,12 @@ from .slicer import auto_slice_lines
 from .preprocessing import preprocess_image
 from .aggregator import aggregate_text
 from PIL import Image
+import io
+import base64
 
-def run_ocr_engine(image_path, processor, model):
-    image = Image.open(image_path)
+def run_ocr_engine(image_base64):
+    image = Image.open(io.BytesIO(base64.b64decode(image_base64)))
+    # preprocessing
     preprocessed = preprocess_image(image)
     line_imgs = auto_slice_lines(preprocessed)
     lines = recognize_batch_images(line_imgs, processor, model)

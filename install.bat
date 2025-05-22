@@ -1,9 +1,8 @@
 @echo off
-where pip >nul 2>&1 || (echo pip is required & exit /B 1)
-where virtualenv >nul 2>&1 || pip install virtualenv
-
-virtualenv venv
+if exist venv rd /s /q venv
+python -m venv venv
 call venv\Scripts\activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-flask run
+python -m flask run
+pause
