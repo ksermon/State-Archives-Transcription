@@ -1,31 +1,36 @@
+# syntax=docker/dockerfile:1.4
 FROM python:3.12.1-slim
 
 WORKDIR /app
 
-RUN apt-get update 
-
-RUN apt-get install -y curl
-
-RUN mkdir -p app/models/trocr-base-handwritten-local && \
-    echo "Downloading model files..." && \
-    curl -L https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/config.json -o app/models/trocr-base-handwritten-local/config.json && \
-    curl -L https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/preprocessor_config.json -o app/models/trocr-base-handwritten-local/preprocessor_config.json && \
-    curl -L https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/pytorch_model.bin -o app/models/trocr-base-handwritten-local/pytorch_model.bin && \
-    echo "Model files downloaded."
-
-RUN apt-get install -y git
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl git libgl1 libglib2.0-0 && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip
 
-RUN apt-get install -y libgl1 libglib2.0-0
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/huggingface/hub \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN mkdir -p app/models/trocr-base-handwritten-local && \
+    cd app/models/trocr-base-handwritten-local && \
+    if [ ! -f pytorch_model.bin ]; then \
+      curl -fSL https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/config.json -o config.json && \
+      curl -fSL https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/preprocessor_config.json -o preprocessor_config.json && \
+      curl -fSL https://huggingface.co/microsoft/trocr-base-handwritten/resolve/main/pytorch_model.bin -o pytorch_model.bin; \
+    fi
 
 COPY . .
 
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=development 
-ENV FLASK_RUN_HOST=0.0.0.0 
+ENV FLASK_APP=app.py \
+    FLASK_ENV=development \
+    FLASK_RUN_HOST=0.0.0.0 
 
 EXPOSE 5000
 
