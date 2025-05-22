@@ -124,12 +124,18 @@ def search_files():
         flash("Please enter a search term.")
         return redirect(url_for("main.file_list"))
 
-    # search relevant text
-    search_results = UploadedFile.query.filter(
-        (UploadedFile.name.ilike(f"%{query}%")) |
-        (UploadedFile.description.ilike(f"%{query}%")) |
-        (UploadedFile.transcription.ilike(f"%{query}%"))
-    ).all()
+    # Search UploadedFile name/description or any FilePage transcription
+    search_results = (
+        UploadedFile.query
+        .outerjoin(FilePage, UploadedFile.id == FilePage.file_id)
+        .filter(
+            (UploadedFile.name.ilike(f"%{query}%")) |
+            (UploadedFile.description.ilike(f"%{query}%")) |
+            (FilePage.transcription.ilike(f"%{query}%"))
+        )
+        .distinct()
+        .all()
+    )
 
     if not search_results:
         flash("No files matched your search.")
