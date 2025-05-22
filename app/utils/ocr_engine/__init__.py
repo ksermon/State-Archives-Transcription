@@ -6,12 +6,6 @@ from PIL import Image
 import io
 import base64
 
-from .ocr_model import load_model, recognize_single_image, recognize_batch_images
-from .slicer import auto_slice_lines
-from .preprocessing import preprocess_image
-from .aggregator import aggregate_text
-from PIL import Image
-
 # def run_ocr_engine(image_path, processor, model):
 def run_ocr_engine(image_base64):
     image = Image.open(io.BytesIO(base64.b64decode(image_base64)))
