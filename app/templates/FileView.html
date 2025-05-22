@@ -8,24 +8,30 @@
   <div class="main-box">
     <h1 class="file-title">File: {{ name }}</h1>
     <div class="description-block">
-      <span class="upload-time">TODO: Display Upload Time Here</span>
-      <span class="file-type">TODO:Display Type Here</span>
-      <p class="description">Description:{{description}}</p>
+      <p class="description">Description: {{ description }}</p>
     </div>
 
-    <div class="container">
-      <div class="pdf-viewer">
-
-        <iframe src="data:application/pdf;base64,{{ content }}" width="650" height="600"></iframe>
-     
+    <div class="container" style="display: flex; gap: 40px;">
+      <div class="ocr-image-box" style="flex: 1; text-align: center;">
+        <img src="data:image/png;base64,{{ image }}" alt="Page image" style="max-width: 100%; height: auto;" />
+        <div class="pdf-controller" style="margin-top:10px;">
+          {% if page > 1 %}
+            <a href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}">&laquo; Prev</a>
+          {% else %}
+            <span style="color: #ccc;">&laquo; Prev</span>
+          {% endif %}
+          <span>Page {{ page }} of {{ total_pages }}</span>
+          {% if page < total_pages %}
+            <a href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}">Next &raquo;</a>
+          {% else %}
+            <span style="color: #ccc;">Next &raquo;</span>
+          {% endif %}
+        </div>
       </div>
-
-      <div class="ocr-box">
-        <h2>Transcribed Text</h2>
-        <div class="transcripts">This is a temporary holder for transcripts.</div>
+      <div class="ocr-transcription-box" style="flex: 1;">
+        <h3>Transcription</h3>
+        <div style="white-space: pre-wrap;">{{ transcription }}</div>
       </div>
     </div>
-  </div>
-</div>
   </div>
 {% endblock %}
