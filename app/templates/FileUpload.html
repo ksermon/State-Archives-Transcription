@@ -28,6 +28,16 @@
       </label>
 
       <button type="submit">Upload</button>
+      <div id="loading-spinner" style="display:none; text-align:center;">
+        <p>Processing your file, please wait...</p>
+      <div class="spinner"></div>
+      </div>
     </form>
   </div>
+
+  <script>
+  document.querySelector('.upload-form').addEventListener('submit', function() {
+    document.getElementById('loading-spinner').style.display = 'block';
+  });
+  </script>
 {% endblock %}
