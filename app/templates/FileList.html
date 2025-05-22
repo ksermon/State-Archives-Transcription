@@ -19,7 +19,12 @@
         <div class="card-grid">
             
             {% for file in files %}
-                {% include 'components/document_card.html' %}
+                <div class="file-card">
+                    {% include 'components/document_card.html' %}
+                    <form action="{{ url_for('main.delete_file', file_id=file.id) }}" method="post" style="margin-top: 10px;">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this file?');">Delete</button>
+                    </form>
+                </div>
             {% endfor %}
                 
         </div>

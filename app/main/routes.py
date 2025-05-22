@@ -8,6 +8,7 @@ from config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64
+from app.models import UploadedFile, FilePage
 
 
 def allowed_file(filename):
@@ -26,9 +27,17 @@ def file_list():
     files = UploadedFile.query.all()
     return render_template("FileList.html", files=files)
 
-
-from app.models import UploadedFile, FilePage
-# ...existing imports...
+@bp.route("/delete/<int:file_id>", methods=["POST"])
+def delete_file(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file:
+        abort(404)
+    # Delete all pages first
+    FilePage.query.filter_by(file_id=file_id).delete()
+    db.session.delete(uploaded_file)
+    db.session.commit()
+    flash("File deleted successfully.")
+    return redirect(url_for("main.file_list"))
 
 @bp.route("/upload", methods=["GET","POST"])
 def file_upload():

@@ -77,3 +77,31 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+
+.file-card form {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-danger {
+    background: linear-gradient(90deg, #ff5858 0%, #ff7b7b 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(255, 88, 88, 0.15);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.btn-danger:hover, .btn-danger:focus {
+    background: linear-gradient(90deg, #ff3636 0%, #ff5858 100%);
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 4px 16px rgba(255, 88, 88, 0.25);
+    outline: none;
+}
