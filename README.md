@@ -8,7 +8,6 @@ _An app for OCR-based transcription of scanned, handwritten archives._
 ---
 
 ## Table of Contents
-
 1. [Features](#features)  
 2. [Prerequisites](#prerequisites)  
 3. [Getting Started](#getting-started)  
@@ -18,7 +17,9 @@ _An app for OCR-based transcription of scanned, handwritten archives._
 4. [Usage](#usage)  
 5. [Project Structure](#project-structure)
 6. [Contributing](#contributing)  
-7. [License](#license)  
+7. [License](#license) 
+
+---
 
 ## Features
 
