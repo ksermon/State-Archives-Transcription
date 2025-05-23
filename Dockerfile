@@ -7,14 +7,15 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl git libgl1 libglib2.0-0 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements.txt requirements-training.txt ./
 
 RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.cache/huggingface/hub \
-    /opt/venv/bin/pip install -r requirements.txt
+    /opt/venv/bin/pip install -r requirements.txt && \
+    /opt/venv/bin/pip install -r requirements-training.txt
 
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -30,7 +31,7 @@ COPY . .
 
 ENV FLASK_APP=run:app \
     FLASK_ENV=development \
-    FLASK_RUN_HOST=0.0.0.0 
+    FLASK_RUN_HOST=0.0.0.0
 
 EXPOSE 5000
 
