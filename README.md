@@ -17,7 +17,7 @@ cd State-Archives-Transcription
 ### 2.1 Docker Deployment
 
 1. Download Docker Desktop. 
-2. Use `docker compose up` to run the server. 
+2. Use `docker compose up` to run the server using WSL.
 
 It will automatically download any necessary dependencies, and will take longer the first time. 
 
