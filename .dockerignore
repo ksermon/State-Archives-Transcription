@@ -1,0 +1,9 @@
+venv/
+
+app/models/trocr-base-handwritten-local/
+
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.git/
