@@ -1,10 +1,9 @@
 import os
-from flask import render_template, request, redirect, flash, url_for, abort
+from flask import render_template, request, redirect, flash, url_for, abort, current_app
 from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
 from app.models import UploadedFile
-from app.config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64
@@ -14,7 +13,8 @@ from app.models import UploadedFile, FilePage
 def allowed_file(filename):
     return (
         "." in filename
-        and filename.rsplit(".", 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+        and filename.rsplit(".", 1)[1].lower() 
+            in current_app.config["ALLOWED_EXTENSIONS"]
     )
 
 @bp.route("/", methods=["GET"])
