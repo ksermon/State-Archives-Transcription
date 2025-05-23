@@ -1,9 +1,14 @@
 venv/
-
+instance/
+test_data/
 app/models/trocr-base-handwritten-local/
 
 __pycache__/
 *.py[cod]
+*.pyc
 *.so
 *.egg-info/
 .git/
+.giuthub/
+.qodo/
+.env

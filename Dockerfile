@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-FROM python:3.12.1-slim
+FROM python:3.12.10-slim
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN python -m venv /opt/venv && \
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.cache/huggingface/hub \
-    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+    /opt/venv/bin/pip install -r requirements.txt
 
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -28,7 +28,7 @@ RUN mkdir -p app/models/trocr-base-handwritten-local && \
 
 COPY . .
 
-ENV FLASK_APP=app.py \
+ENV FLASK_APP=run:app \
     FLASK_ENV=development \
     FLASK_RUN_HOST=0.0.0.0 
 

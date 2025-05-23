@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
 from app.models import UploadedFile
-from config import Config
+from app.config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64

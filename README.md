@@ -3,7 +3,6 @@
 _An app for OCR-based transcription of scanned, handwritten archives._
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Docker Build](https://img.shields.io/docker/cloud/build/your-repo/state-archives-transcription)]
 
 ---
 
@@ -78,7 +77,6 @@ docker compose up
 ```
 
 ## Contributing
-(for Keeley, by Keeley, I will remember this)
 1. Add or find an issue
 2. Create a branch (`git checkout -b feat/xyz)
 3. Commit your changes (git commit -m "Add xyz")
