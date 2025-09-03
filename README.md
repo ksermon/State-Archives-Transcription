@@ -30,10 +30,6 @@ _An app for OCR-based transcription of scanned, handwritten archives._
 ## Prerequisites
 
 - **Docker Desktop**
-- **Python** 3.8+  
-- **Git**  
-- **pip** ([install guide](https://pip.pypa.io/en/stable/installation/))  
-- **virtualenv** (optional, recommended)
 
 ---
 
@@ -88,4 +84,5 @@ docker compose up
 ## License
 
 This project is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).  
+
 See the full license text in the [LICENSE](LICENSE) file.
