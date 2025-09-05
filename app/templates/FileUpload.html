@@ -23,6 +23,15 @@
         <input id="file" name="file" type="file" required/>
       </label>
 
+      <div class="transcription-options">
+        <label>Transcription Method</label>
+        <div class="radio-buttons">
+          <input type="radio" id="trocr" name="transcription_method" value="trocr" checked>
+          <label for="trocr" class="radio-label">Local (TrOCR)</label>
+          <input type="radio" id="gemini" name="transcription_method" value="gemini">
+          <label for="gemini" class="radio-label">Cloud (Gemini)</label>
+        </div>
+      </div>
       <button type="submit">Upload</button>
       <div id="loading-spinner" style="display:none; text-align:center;">
         <p>Processing your file, please wait...</p>

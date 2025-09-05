@@ -9,7 +9,10 @@ from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64
 from app.models import UploadedFile, FilePage
+from dotenv import load_dotenv
+from app.utils.gemini_transcriber import transcribe_images_with_gemini
 
+load_dotenv()
 
 def allowed_file(filename):
     return (
@@ -43,45 +46,67 @@ def delete_file(file_id):
 def file_upload():
     if request.method == "GET":
         return render_template("FileUpload.html")
+        
     if "file" not in request.files:
         flash("No file part in the request.")
         return redirect(url_for("main.file_list"))
+        
     file = request.files["file"]
     if file.filename == "":
         flash("No file selected.")
         return redirect(url_for("main.file_list"))
+        
     if file and allowed_file(file.filename):
         file_name = secure_filename(file.filename)
         file_content = file.read()
         images = pdf_to_images_base64(file_content)
         custom_name = request.form.get("name") or file_name
         description = request.form.get("description", "")
+        # Get the selected transcription method from the form
+        transcription_method = request.form.get("transcription_method", "trocr")
 
-        # Save the file record first
+        # Save the file record first (no changes here as requested)
         db_file = UploadedFile(
             name=custom_name,
             content=file_content,
             description=description
         )
         db.session.add(db_file)
-        db.session.commit() 
-
-        # For each image, run OCR and save as FilePage
-        print(f"Number of images: {len(images)}")
-        for idx, img_base64 in enumerate(images):
-            transcription = run_ocr_engine(img_base64)
-            img_bytes = base64.b64decode(img_base64)
-            db_page = FilePage(
-                file_id=db_file.id,
-                page_number=idx + 1,
-                image=img_bytes,
-                transcription=transcription
-            )
-            db.session.add(db_page)
-            print(f"Page {idx + 1} added with transcription: {transcription}")
         db.session.commit()
 
-        flash(f'File "{file_name}" uploaded successfully!')
+        # Branch logic based on the selected transcription method
+        print(transcription_method)
+        if transcription_method == "gemini":
+            batch_size = 10
+            for i in range(0, len(images), batch_size):
+                batch_images = images[i:i + batch_size]
+                transcriptions = transcribe_images_with_gemini(batch_images)
+
+                for idx, (img_base64, transcription_text) in enumerate(zip(batch_images, transcriptions)):
+                    page_number = i + idx + 1
+                    img_bytes = base64.b64decode(img_base64)
+                    db_page = FilePage(
+                        file_id=db_file.id,
+                        page_number=page_number,
+                        image=img_bytes,
+                        transcription=transcription_text
+                    )
+                    db.session.add(db_page)
+        else: # Default to 'trocr'
+            for idx, img_base64 in enumerate(images):
+                transcription = run_ocr_engine(img_base64)
+                img_bytes = base64.b64decode(img_base64)
+                db_page = FilePage(
+                    file_id=db_file.id,
+                    page_number=idx + 1,
+                    image=img_bytes,
+                    transcription=transcription
+                )
+                db.session.add(db_page)
+        
+        db.session.commit()
+
+        flash(f'File "{file_name}" uploaded and transcribed using {transcription_method.upper()}!')
         return redirect(url_for("main.file_view", file_id=db_file.id))
     else:
         flash("Invalid file type.")
