@@ -65,7 +65,7 @@ def file_upload():
         # Get the selected transcription method from the form
         transcription_method = request.form.get("transcription_method", "trocr")
 
-        # Save the file record first (no changes here as requested)
+        # Save the file record first
         db_file = UploadedFile(
             name=custom_name,
             content=file_content,
