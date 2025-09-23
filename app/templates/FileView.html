@@ -30,7 +30,9 @@
       </div>
       <div class="ocr-transcription-box" style="flex: 1;">
         <h3>Transcription</h3>
-        <div style="white-space: pre-wrap;">{{ transcription }}</div>
+        <div class="transcripts" style="white-space: pre-wrap;">
+          {{ transcription | markdown_bold_to_html | safe }}
+        </div>
       </div>
     </div>
   </div>

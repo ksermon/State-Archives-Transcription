@@ -145,3 +145,9 @@ button:hover {
     overflow-y: auto;
     flex: 1;
 }
+
+.transcripts b,
+.transcripts strong {
+    font-weight: bold;
+    color:red;
+}

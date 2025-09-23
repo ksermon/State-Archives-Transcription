@@ -65,6 +65,9 @@ def file_upload():
         # Get the selected transcription method from the form
         transcription_method = request.form.get("transcription_method", "trocr")
 
+        # Mark unceratin characters
+        mark_uncertainty = "mark_uncertainty" in request.form 
+
         # Save the file record first
         db_file = UploadedFile(
             name=custom_name,
@@ -80,7 +83,7 @@ def file_upload():
             batch_size = 10
             for i in range(0, len(images), batch_size):
                 batch_images = images[i:i + batch_size]
-                transcriptions = transcribe_images_with_gemini(batch_images)
+                transcriptions = transcribe_images_with_gemini(batch_images,mark_uncertainty=mark_uncertainty )
 
                 for idx, (img_base64, transcription_text) in enumerate(zip(batch_images, transcriptions)):
                     page_number = i + idx + 1
