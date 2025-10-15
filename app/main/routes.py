@@ -7,6 +7,7 @@ from flask import (
     abort,
     jsonify,
     Response,
+    send_file,
 )
 from werkzeug.utils import secure_filename
 from app.main import bp
@@ -19,6 +20,7 @@ from app.models import UploadedFile, FilePage
 from dotenv import load_dotenv
 from app.utils.gemini_transcriber import transcribe_images_with_gemini
 from app.utils.text_regions import extract_line_boxes, get_image_dimensions
+from io import BytesIO
 
 
 def _align_boxes_to_lines(boxes, line_count):
@@ -203,6 +205,23 @@ def download_transcription(file_id):
     response = Response(combined_text, mimetype="text/plain")
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
+
+
+@bp.route("/api/files/<int:file_id>/pdf", methods=["GET"])
+def stream_file_pdf(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file or not uploaded_file.content:
+        abort(404)
+
+    pdf_stream = BytesIO(uploaded_file.content)
+    download_name = uploaded_file.name or f"file-{file_id}.pdf"
+
+    return send_file(
+        pdf_stream,
+        mimetype="application/pdf",
+        as_attachment=False,
+        download_name=download_name,
+    )
 
 @bp.route("/search", methods=["GET"])
 def search_files():

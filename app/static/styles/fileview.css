@@ -77,29 +77,44 @@
 .pdf-stage-wrapper {
     position: relative;
     width: 100%;
-    overflow: hidden;
+    overflow: auto;
     background: #111;
     border-radius: 12px;
-    touch-action: none;
+    touch-action: auto;
 }
 
 .pdf-stage {
     position: relative;
+    display: block;
     width: 100%;
-    height: 0;
-    padding-bottom: var(--pdf-aspect, 141%);
-    transform-origin: center center;
+    min-height: 320px;
 }
 
-#pdf-image {
+.pdf-stage::before {
+    content: "";
+    display: block;
+    padding-bottom: var(--pdf-aspect, 141%);
+}
+
+.pdf-stage.is-loaded {
+    width: auto;
+    min-height: 0;
+    display: inline-block;
+}
+
+.pdf-stage.is-loaded::before {
+    display: none;
+}
+
+#pdf-canvas {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    display: block;
+    background: #fff;
     user-select: none;
-    pointer-events: none;
+    -webkit-user-select: none;
 }
 
 .pdf-overlay {
