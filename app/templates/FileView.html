@@ -26,17 +26,9 @@
               <button type="button" class="icon-btn" id="reset-view" aria-label="Fit page">&#9974;</button>
             </div>
             <div class="overlay-group page-controls">
-              {% if page > 1 %}
-                <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" aria-label="Previous page">&laquo;</a>
-              {% else %}
-                <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
-              {% endif %}
-              <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
-              {% if page < total_pages %}
-                <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
-              {% else %}
-                <span class="icon-btn disabled" aria-hidden="true">&raquo;</span>
-              {% endif %}
+              <button type="button" id="prev-page" class="icon-btn{% if page <= 1 %} disabled{% endif %}" aria-label="Previous page" {% if page <= 1 %}disabled{% endif %}>&laquo;</button>
+              <span class="page-indicator" id="page-indicator">{{ page }} / {{ total_pages }}</span>
+              <button type="button" id="next-page" class="icon-btn{% if page >= total_pages %} disabled{% endif %}" aria-label="Next page" {% if page >= total_pages %}disabled{% endif %}>&raquo;</button>
             </div>
           </div>
           {% if image_dimensions %}
@@ -65,18 +57,23 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-8nZx09te43Q6rY7DKY2YgDD10GpS1Ry6j8TDIrS9azI=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-9PI4Hcqdhk6UDuIArOUvzRL9S/uJRmDpkA2o4gIigDs=" crossorigin="anonymous"></script>
   <script>
     const rawLineBoxes = {{ line_boxes | tojson }};
     const fileId = {{ file_id }};
-    const pageNumber = {{ page }};
+    let currentPageNumber = {{ page }};
+    let totalPages = {{ total_pages }};
 
     const pdfStage = document.getElementById('pdf-stage');
     const pdfWrapper = pdfStage.parentElement;
+    const pdfImage = document.getElementById('pdf-image');
     const highlightOverlay = document.getElementById('highlight-overlay');
     const transcriptionEditor = document.getElementById('transcription-editor');
     const saveButton = document.getElementById('save-transcription');
     const transcriptionLinesContainer = document.getElementById('transcription-lines');
+    const prevButton = document.getElementById('prev-page');
+    const nextButton = document.getElementById('next-page');
+    const pageIndicator = document.getElementById('page-indicator');
 
     const panzoomInstance = Panzoom(pdfStage, {
       contain: 'outside',
@@ -91,17 +88,63 @@
     document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
     document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
 
-    const lines = transcriptionEditor.value.length ? transcriptionEditor.value.split('\n') : [''];
-    const lineBoxes = Array.isArray(rawLineBoxes) ? rawLineBoxes.slice(0, lines.length) : [];
-    while (lineBoxes.length < lines.length) {
-      lineBoxes.push(null);
+    function prepareLineBoxes(rawBoxes, lineCount) {
+      const boxes = Array.isArray(rawBoxes) ? rawBoxes.slice(0, lineCount) : [];
+      while (boxes.length < lineCount) {
+        boxes.push(null);
+      }
+      return boxes;
     }
 
-    const overlayRects = [];
+    function getImageDataUrl(imagePayload) {
+      if (!imagePayload) {
+        return null;
+      }
+      if (typeof imagePayload === 'string') {
+        return imagePayload.startsWith('data:')
+          ? imagePayload
+          : `data:image/png;base64,${imagePayload}`;
+      }
+      const base64 = imagePayload.data_url || imagePayload.data || imagePayload.base64;
+      if (!base64) {
+        return null;
+      }
+      if (typeof base64 === 'string' && base64.startsWith('data:')) {
+        return base64;
+      }
+      const mime = imagePayload.content_type || imagePayload.mime_type || 'image/png';
+      return `data:${mime};base64,${base64}`;
+    }
+
+    function setButtonDisabled(button, disabled) {
+      if (!button) {
+        return;
+      }
+      button.disabled = disabled;
+      if (disabled) {
+        button.classList.add('disabled');
+      } else {
+        button.classList.remove('disabled');
+      }
+    }
+
+    function updateNavigationUI(page, total) {
+      if (pageIndicator) {
+        pageIndicator.textContent = `${page} / ${total}`;
+      }
+      setButtonDisabled(prevButton, page <= 1);
+      setButtonDisabled(nextButton, page >= total);
+    }
+
+    let lines = transcriptionEditor.value.length ? transcriptionEditor.value.split('\n') : [''];
+    lines = lines.map((line) => line.replace(/\r/g, ''));
+    let lineBoxes = prepareLineBoxes(rawLineBoxes, lines.length);
+    let overlayRects = [];
     let activeLineIndex = null;
     let activeLineEl = null;
     let activeEditor = null;
     let isDirty = false;
+    let isLoadingPage = false;
 
     function updateHiddenTranscription() {
       transcriptionEditor.value = lines.join('\n');
@@ -166,9 +209,9 @@
 
     function buildOverlay() {
       highlightOverlay.innerHTML = '';
+      overlayRects = new Array(lineBoxes.length).fill(null);
       lineBoxes.forEach((box, index) => {
         if (!box) {
-          overlayRects[index] = null;
           return;
         }
         const rect = document.createElement('div');
@@ -237,9 +280,10 @@
       }
       const { lineEl, index, textarea, original } = editor;
       const nextValue = commit ? textarea.value : original;
-      const changed = commit && nextValue !== original;
-      lines[index] = nextValue;
-      applyLineText(lineEl, nextValue);
+      const normalizedValue = nextValue.replace(/\r/g, '');
+      const changed = commit && normalizedValue !== original;
+      lines[index] = normalizedValue;
+      applyLineText(lineEl, normalizedValue);
       setLineActions(lineEl);
       lineEl.classList.remove('editing');
       delete lineEl.dataset.editing;
@@ -411,7 +455,7 @@
       saveButton.textContent = 'Saving...';
       saveButton.classList.remove('has-changes');
       try {
-        const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
+        const response = await fetch(`/api/files/${fileId}/pages/${currentPageNumber}/transcription`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -436,8 +480,97 @@
       }
     });
 
+    async function loadPage(targetPage) {
+      if (isLoadingPage || targetPage === currentPageNumber) {
+        return;
+      }
+      if (targetPage < 1 || targetPage > totalPages) {
+        return;
+      }
+      isLoadingPage = true;
+      setButtonDisabled(prevButton, true);
+      setButtonDisabled(nextButton, true);
+      try {
+        const response = await fetch(`/api/files/${fileId}/pages/${targetPage}`);
+        if (!response.ok) {
+          throw new Error(`Failed to load page ${targetPage}`);
+        }
+        const data = await response.json();
+        applyPageData(data);
+      } catch (error) {
+        console.error(error);
+        updateNavigationUI(currentPageNumber, totalPages);
+      } finally {
+        isLoadingPage = false;
+        updateNavigationUI(currentPageNumber, totalPages);
+      }
+    }
+
+    function applyPageData(data) {
+      if (!data || typeof data !== 'object') {
+        return;
+      }
+      if (activeEditor) {
+        closeEditor(activeEditor, { commit: false });
+      }
+      const transcription = typeof data.transcription === 'string' ? data.transcription : '';
+      const nextLines = Array.isArray(data.transcription_lines) && data.transcription_lines.length
+        ? data.transcription_lines.slice()
+        : (transcription.length ? transcription.split('\n') : ['']);
+      lines = nextLines.length ? nextLines.map((line) => line.replace(/\r/g, '')) : [''];
+      lineBoxes = prepareLineBoxes(data.line_boxes, lines.length);
+      transcriptionEditor.value = lines.join('\n');
+      renderLines();
+      buildOverlay();
+      clearActiveLine();
+      updateHiddenTranscription();
+      resetDirtyState();
+
+      const imageUrl = getImageDataUrl(data.image);
+      if (imageUrl) {
+        pdfImage.src = imageUrl;
+      }
+
+      if (data.dimensions && data.dimensions.width && data.dimensions.height) {
+        const aspectPercent = (data.dimensions.height / data.dimensions.width) * 100;
+        pdfStage.style.setProperty('--pdf-aspect', `${aspectPercent.toFixed(2)}%`);
+      } else {
+        pdfStage.style.removeProperty('--pdf-aspect');
+      }
+
+      if (typeof data.page === 'number') {
+        currentPageNumber = data.page;
+      }
+      if (typeof data.total_pages === 'number') {
+        totalPages = data.total_pages;
+      }
+
+      panzoomInstance.reset();
+      updateNavigationUI(currentPageNumber, totalPages);
+    }
+
+    if (prevButton) {
+      prevButton.addEventListener('click', () => {
+        if (isLoadingPage || currentPageNumber <= 1) {
+          return;
+        }
+        loadPage(currentPageNumber - 1);
+      });
+    }
+
+    if (nextButton) {
+      nextButton.addEventListener('click', () => {
+        if (isLoadingPage || currentPageNumber >= totalPages) {
+          return;
+        }
+        loadPage(currentPageNumber + 1);
+      });
+    }
+
     renderLines();
     buildOverlay();
     updateHiddenTranscription();
+    resetDirtyState();
+    updateNavigationUI(currentPageNumber, totalPages);
   </script>
 {% endblock %}
