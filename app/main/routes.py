@@ -1,17 +1,34 @@
-import os
-from flask import render_template, request, redirect, flash, url_for, abort
+from flask import (
+    render_template,
+    request,
+    redirect,
+    flash,
+    url_for,
+    abort,
+    jsonify,
+    Response,
+)
 from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
-from app.models import UploadedFile
 from config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
-from app.utils.text_regions import extract_text_regions
 import base64
 from app.models import UploadedFile, FilePage
 from dotenv import load_dotenv
 from app.utils.gemini_transcriber import transcribe_images_with_gemini
+from app.utils.text_regions import extract_line_boxes, get_image_dimensions
+
+
+def _align_boxes_to_lines(boxes, line_count):
+    if line_count <= 0:
+        return []
+    boxes = boxes or []
+    boxes = boxes[:line_count]
+    if len(boxes) < line_count:
+        boxes.extend([None] * (line_count - len(boxes)))
+    return boxes
 
 load_dotenv()
 
@@ -131,10 +148,13 @@ def file_view(file_id):
         page = 1
 
     current_page = pages[page - 1]
-    image_bytes = current_page.image
-    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+    image_base64 = base64.b64encode(current_page.image).decode("utf-8")
     transcription = current_page.transcription or "No transcription available."
-    text_regions = extract_text_regions(image_bytes)
+
+    transcription_lines = transcription.splitlines() or [transcription]
+    line_boxes = extract_line_boxes(current_page.image)
+    line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
+    dimensions = get_image_dimensions(current_page.image)
 
     return render_template(
         "FileView.html",
@@ -143,10 +163,46 @@ def file_view(file_id):
         description=uploaded_file.description or "No description available.",
         image=image_base64,
         transcription=transcription,
+        transcription_lines=transcription_lines,
+        line_boxes=line_boxes,
+        image_dimensions=dimensions,
         page=page,
         total_pages=total_pages,
-        text_regions=text_regions,
     )
+
+
+@bp.route("/api/files/<int:file_id>/pages/<int:page>/transcription", methods=["PUT"])
+def update_transcription(file_id, page):
+    page_obj = FilePage.query.filter_by(file_id=file_id, page_number=page).first()
+    if not page_obj:
+        abort(404)
+
+    data = request.get_json(silent=True) or {}
+    new_text = data.get("transcription", "")
+    page_obj.transcription = new_text
+    db.session.commit()
+
+    return jsonify({"status": "ok"})
+
+
+@bp.route("/download/<int:file_id>/transcription", methods=["GET"])
+def download_transcription(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file:
+        abort(404)
+
+    pages = (
+        FilePage.query.filter_by(file_id=file_id)
+        .order_by(FilePage.page_number)
+        .all()
+    )
+
+    combined_text = "\n\n".join((page.transcription or "").strip() for page in pages)
+
+    filename = f"{secure_filename(uploaded_file.name.rsplit('.', 1)[0]) or 'transcription'}.txt"
+    response = Response(combined_text, mimetype="text/plain")
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return response
 
 @bp.route("/search", methods=["GET"])
 def search_files():
