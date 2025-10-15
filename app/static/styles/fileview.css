@@ -100,6 +100,7 @@
     object-fit: contain;
     user-select: none;
     pointer-events: none;
+    z-index: 1;
 }
 
 .pdf-overlay {
@@ -164,24 +165,26 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 2;
 }
 
 .line-region {
     position: absolute;
     border-radius: 6px;
-    background: rgba(255, 214, 102, 0.18);
-    border: 1px solid rgba(255, 214, 102, 0.3);
+    background: rgba(255, 214, 102, 0.28);
+    border: 1px solid rgba(255, 214, 102, 0.6);
+    z-index: 1;
     transition: background 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 .line-region.hover {
-    background: rgba(255, 214, 102, 0.25);
-    border-color: rgba(255, 214, 102, 0.5);
+    background: rgba(255, 214, 102, 0.35);
+    border-color: rgba(255, 214, 102, 0.75);
 }
 
 .line-region.active {
-    background: rgba(247, 181, 0, 0.3);
-    border-color: rgba(247, 181, 0, 0.8);
+    background: rgba(247, 181, 0, 0.42);
+    border-color: rgba(247, 181, 0, 0.95);
     box-shadow: 0 0 16px rgba(247, 181, 0, 0.45);
 }
 
@@ -194,6 +197,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    color: #f8f8f8;
 }
 
 .panel-header {
