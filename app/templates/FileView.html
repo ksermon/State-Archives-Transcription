@@ -81,145 +81,147 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-8nZx09te43Q6rY7DKY2YgDD10GpS1Ry6j8TDIrS9azI=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-9PI4Hcqdhk6UDuIArOUvzRL9S/uJRmDpkA2o4gIigDs=" crossorigin="anonymous"></script>
   <script>
-    const lineBoxes = {{ line_boxes | tojson }};
-    const fileId = {{ file_id }};
-    const pageNumber = {{ page }};
+      const lineBoxes = {{ line_boxes | tojson }};
+      const fileId = {{ file_id }};
+      const pageNumber = {{ page }};
 
-    const pdfStage = document.getElementById('pdf-stage');
-    const highlightOverlay = document.getElementById('highlight-overlay');
-    const transcriptionEditor = document.getElementById('transcription-editor');
-    const saveButton = document.getElementById('save-transcription');
-    const transcriptionLinesContainer = document.getElementById('transcription-lines');
+      const pdfStage = document.getElementById('pdf-stage');
+      const highlightOverlay = document.getElementById('highlight-overlay');
+      const transcriptionEditor = document.getElementById('transcription-editor');
+      const saveButton = document.getElementById('save-transcription');
+      const transcriptionLinesContainer = document.getElementById('transcription-lines');
 
-    const panzoomInstance = Panzoom(pdfStage, {
-      contain: 'outside',
-      maxScale: 4,
-      minScale: 0.5,
-      cursor: 'grab'
-    });
-
-    pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
-
-    document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
-    document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
-    document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
-
-    function clearHighlight() {
-      highlightOverlay.innerHTML = '';
-      transcriptionLinesContainer.querySelectorAll('.transcription-line').forEach((line) => {
-        line.classList.remove('active');
+      const panzoomInstance = Panzoom(pdfStage, {
+        contain: 'outside',
+        maxScale: 4,
+        minScale: 0.5,
+        cursor: 'grab'
       });
-    }
 
-    function renderHighlight(box) {
-      highlightOverlay.innerHTML = '';
-      if (!box) {
-        return;
-      }
-      const rect = document.createElement('div');
-      rect.className = 'highlight-rect';
-      rect.style.left = `${box.x * 100}%`;
-      rect.style.top = `${box.y * 100}%`;
-      rect.style.width = `${box.width * 100}%`;
-      rect.style.height = `${box.height * 100}%`;
-      highlightOverlay.appendChild(rect);
-    }
+      pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
 
-    function ensureLineBoxesLength(count) {
-      if (!Array.isArray(lineBoxes)) {
-        return;
-      }
-      if (lineBoxes.length < count) {
-        const diff = count - lineBoxes.length;
-        for (let i = 0; i < diff; i += 1) {
-          lineBoxes.push(null);
-        }
-      }
-    }
+      document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
+      document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
+      document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
 
-    function renderLinesFromText(text) {
-      const lines = text.split('\n');
-      ensureLineBoxesLength(lines.length);
-      transcriptionLinesContainer.innerHTML = '';
-      lines.forEach((line, index) => {
-        const lineEl = document.createElement('div');
-        lineEl.className = 'transcription-line';
-        lineEl.dataset.lineIndex = index;
-
-        if (line.trim().length === 0) {
-          const empty = document.createElement('span');
-          empty.className = 'word empty';
-          empty.textContent = '(blank line)';
-          lineEl.appendChild(empty);
-        } else {
-          line.split(/(\s+)/).forEach((token) => {
-            if (!token) {
-              return;
-            }
-            const word = document.createElement('span');
-            if (/\s+/.test(token)) {
-              word.className = 'word space';
-              word.innerHTML = '&nbsp;';
-            } else {
-              word.className = 'word';
-              word.textContent = token;
-            }
-            lineEl.appendChild(word);
-          });
-        }
-
-        transcriptionLinesContainer.appendChild(lineEl);
-      });
-    }
-
-    function handleLineSelection(event) {
-      const lineEl = event.target.closest('.transcription-line');
-      if (!lineEl) {
-        return;
-      }
-      const lineIndex = parseInt(lineEl.dataset.lineIndex, 10);
-      clearHighlight();
-      lineEl.classList.add('active');
-      renderHighlight(lineBoxes[lineIndex]);
-    }
-
-    transcriptionLinesContainer.addEventListener('click', handleLineSelection);
-
-    transcriptionEditor.addEventListener('input', () => {
-      clearHighlight();
-      renderLinesFromText(transcriptionEditor.value);
-    });
-
-    saveButton.addEventListener('click', async () => {
-      saveButton.disabled = true;
-      saveButton.textContent = 'Saving...';
-      clearHighlight();
-      try {
-        const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ transcription: transcriptionEditor.value })
+      function clearHighlight() {
+        highlightOverlay.innerHTML = '';
+        transcriptionLinesContainer.querySelectorAll('.transcription-line').forEach((line) => {
+          line.classList.remove('active');
         });
-        if (!response.ok) {
-          throw new Error('Failed to save transcription');
-        }
-        saveButton.textContent = 'Saved!';
-      } catch (error) {
-        console.error(error);
-        saveButton.textContent = 'Error - Retry';
-      } finally {
-        setTimeout(() => {
-          saveButton.disabled = false;
-          saveButton.textContent = 'Save Changes';
-        }, 1500);
       }
-    });
 
-    // Initial render ensures the helper lines reflect the stored text.
-    renderLinesFromText(transcriptionEditor.value);
+      function renderHighlight(box) {
+        highlightOverlay.innerHTML = '';
+        if (!box) {
+          return;
+        }
+        const rect = document.createElement('div');
+        rect.className = 'highlight-rect';
+        rect.style.left = `${box.x * 100}%`;
+        rect.style.top = `${box.y * 100}%`;
+        rect.style.width = `${box.width * 100}%`;
+        rect.style.height = `${box.height * 100}%`;
+        highlightOverlay.appendChild(rect);
+      }
+
+      function ensureLineBoxesLength(count) {
+        if (!Array.isArray(lineBoxes)) {
+          return;
+        }
+        if (lineBoxes.length < count) {
+          const diff = count - lineBoxes.length;
+          for (let i = 0; i < diff; i += 1) {
+            lineBoxes.push(null);
+          }
+        }
+      }
+
+      function renderLinesFromText(text) {
+        const lines = text.split('\n');
+        ensureLineBoxesLength(lines.length);
+        transcriptionLinesContainer.innerHTML = '';
+        lines.forEach((line, index) => {
+          const lineEl = document.createElement('div');
+          lineEl.className = 'transcription-line';
+          lineEl.dataset.lineIndex = index;
+
+          if (line.trim().length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'word empty';
+            empty.textContent = '(blank line)';
+            lineEl.appendChild(empty);
+          } else {
+            line.split(/(\s+)/).forEach((token) => {
+              if (!token) {
+                return;
+              }
+              const word = document.createElement('span');
+              if (/\s+/.test(token)) {
+                word.className = 'word space';
+                word.innerHTML = '&nbsp;';
+              } else {
+                word.className = 'word';
+                word.textContent = token;
+              }
+              const wordIndex = line.split(/\s+/).indexOf(token); 
+              lineEl.appendChild(word);
+            });
+          }
+
+          transcriptionLinesContainer.appendChild(lineEl);
+        });
+      }
+
+      function handleLineSelection(event) {
+        const lineEl = event.target.closest('.transcription-line');
+        if (!lineEl) {
+          return;
+        }
+        const lineIndex = parseInt(lineEl.dataset.lineIndex, 10);
+        clearHighlight();
+        lineEl.classList.add('active');
+        renderHighlight(lineBoxes[lineIndex]);
+      }
+
+      transcriptionLinesContainer.addEventListener('click', handleLineSelection);
+
+      transcriptionEditor.addEventListener('input', () => {
+        clearHighlight();
+        renderLinesFromText(transcriptionEditor.value);
+      });
+
+      saveButton.addEventListener('click', async () => {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+        clearHighlight();
+        try {
+          const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ transcription: transcriptionEditor.value })
+          });
+          if (!response.ok) {
+            throw new Error('Failed to save transcription');
+          }
+          saveButton.textContent = 'Saved!';
+        } catch (error) {
+          console.error(error);
+          saveButton.textContent = 'Error - Retry';
+        } finally {
+          setTimeout(() => {
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Changes';
+          }, 1500);
+        }
+      });
+
+      // Initial render ensures the helper lines reflect the stored text.
+      renderLinesFromText(transcriptionEditor.value);
+
   </script>
 {% endblock %}

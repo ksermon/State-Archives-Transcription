@@ -44,9 +44,18 @@ def startpage():
 
 @bp.route("/list", methods=["GET"])
 def file_list():
-    # Display the main page with a list of uploaded files
-    files = UploadedFile.query.all()
-    return render_template("FileList.html", files=files)
+    page = request.args.get("page", 1, type=int)
+    per_page = 3
+    pagination = UploadedFile.query.paginate(page=page, per_page=per_page, error_out=False)
+    files = pagination.items
+    for f in files:
+        first_page = FilePage.query.filter_by(file_id=f.id).order_by(FilePage.page_number).first()
+        if first_page:
+            f.preview_image = base64.b64encode(first_page.image).decode("utf-8")
+        else:
+            f.preview_image = None
+
+    return render_template("FileList.html", files=files, pagination=pagination)
 
 @bp.route("/delete/<int:file_id>", methods=["POST"])
 def delete_file(file_id):
@@ -155,7 +164,6 @@ def file_view(file_id):
     line_boxes = extract_line_boxes(current_page.image)
     line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
     dimensions = get_image_dimensions(current_page.image)
-
     return render_template(
         "FileView.html",
         file_id=uploaded_file.id,
@@ -212,6 +220,8 @@ def search_files():
         flash("Please enter a search term.")
         return redirect(url_for("main.file_list"))
 
+    page = request.args.get("page", 1, type=int)
+    per_page = 3
     # Search UploadedFile name/description or any FilePage transcription
     search_results = (
         UploadedFile.query
@@ -222,10 +232,17 @@ def search_files():
             (FilePage.transcription.ilike(f"%{query}%"))
         )
         .distinct()
-        .all()
     )
-
+    pagination = search_results.paginate(page=page, per_page=per_page, error_out=False)
+    files = pagination.items
     if not search_results:
         flash("No files matched your search.")
 
-    return render_template("SearchResults.html", files=search_results, query=query)
+    for f in files:
+        first_page = FilePage.query.filter_by(file_id=f.id).order_by(FilePage.page_number).first()
+        if first_page:
+            f.preview_image = base64.b64encode(first_page.image).decode("utf-8")
+        else:
+            f.preview_image = None
+
+    return render_template("SearchResults.html", files=search_results, query=query, pagination=pagination)
