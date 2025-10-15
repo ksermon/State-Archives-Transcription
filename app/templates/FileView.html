@@ -61,8 +61,8 @@
   <script>
     const rawLineBoxes = {{ line_boxes | tojson }};
     const fileId = {{ file_id }};
-    let currentPageNumber = {{ page }};
-    let totalPages = {{ total_pages }};
+    let currentPageNumber = Number({{ page }});
+    let totalPages = Number({{ total_pages }});
 
     const pdfStage = document.getElementById('pdf-stage');
     const pdfWrapper = pdfStage.parentElement;
@@ -481,19 +481,20 @@
     });
 
     async function loadPage(targetPage) {
-      if (isLoadingPage || targetPage === currentPageNumber) {
+      const requestedPage = Number(targetPage);
+      if (Number.isNaN(requestedPage) || isLoadingPage || requestedPage === currentPageNumber) {
         return;
       }
-      if (targetPage < 1 || targetPage > totalPages) {
+      if (requestedPage < 1 || requestedPage > totalPages) {
         return;
       }
       isLoadingPage = true;
       setButtonDisabled(prevButton, true);
       setButtonDisabled(nextButton, true);
       try {
-        const response = await fetch(`/api/files/${fileId}/pages/${targetPage}`);
+        const response = await fetch(`/api/files/${fileId}/pages/${requestedPage}`);
         if (!response.ok) {
-          throw new Error(`Failed to load page ${targetPage}`);
+          throw new Error(`Failed to load page ${requestedPage}`);
         }
         const data = await response.json();
         applyPageData(data);
@@ -538,11 +539,13 @@
         pdfStage.style.removeProperty('--pdf-aspect');
       }
 
-      if (typeof data.page === 'number') {
-        currentPageNumber = data.page;
+      const nextPageNumber = Number(data.page);
+      if (!Number.isNaN(nextPageNumber)) {
+        currentPageNumber = nextPageNumber;
       }
-      if (typeof data.total_pages === 'number') {
-        totalPages = data.total_pages;
+      const nextTotalPages = Number(data.total_pages);
+      if (!Number.isNaN(nextTotalPages)) {
+        totalPages = nextTotalPages;
       }
 
       panzoomInstance.reset();
