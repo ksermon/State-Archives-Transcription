@@ -7,6 +7,7 @@ from app.models import UploadedFile
 from config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
+from app.utils.text_regions import extract_text_regions
 import base64
 from app.models import UploadedFile, FilePage
 from dotenv import load_dotenv
@@ -130,8 +131,10 @@ def file_view(file_id):
         page = 1
 
     current_page = pages[page - 1]
-    image_base64 = base64.b64encode(current_page.image).decode("utf-8")
+    image_bytes = current_page.image
+    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
     transcription = current_page.transcription or "No transcription available."
+    text_regions = extract_text_regions(image_bytes)
 
     return render_template(
         "FileView.html",
@@ -142,6 +145,7 @@ def file_view(file_id):
         transcription=transcription,
         page=page,
         total_pages=total_pages,
+        text_regions=text_regions,
     )
 
 @bp.route("/search", methods=["GET"])

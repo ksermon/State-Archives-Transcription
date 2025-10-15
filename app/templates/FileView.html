@@ -13,7 +13,22 @@
 
     <div class="container" style="display: flex; gap: 40px;">
       <div class="ocr-image-box" style="flex: 1; text-align: center;">
-        <img src="data:image/png;base64,{{ image }}" alt="Page image" style="max-width: 100%; height: auto;" />
+        <div class="ocr-image-stage">
+          <img class="ocr-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
+          {% if text_regions %}
+            {% for region in text_regions %}
+              <div
+                class="ocr-text-region"
+                style="
+                  top: {{ (region.top * 100)|round(3) }}%;
+                  left: {{ (region.left * 100)|round(3) }}%;
+                  width: {{ (region.width * 100)|round(3) }}%;
+                  height: {{ (region.height * 100)|round(3) }}%;
+                "
+              ></div>
+            {% endfor %}
+          {% endif %}
+        </div>
         <div class="pdf-controller" style="margin-top:10px;">
           {% if page > 1 %}
             <a href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}">&laquo; Prev</a>
