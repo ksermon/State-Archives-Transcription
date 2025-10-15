@@ -149,9 +149,11 @@ def file_view(file_id):
 
     current_page = pages[page - 1]
     image_base64 = base64.b64encode(current_page.image).decode("utf-8")
-    transcription = current_page.transcription or "No transcription available."
+    transcription = current_page.transcription or ""
 
-    transcription_lines = transcription.splitlines() or [transcription]
+    transcription_lines = transcription.splitlines() if transcription else []
+    if not transcription_lines:
+        transcription_lines = [""]
     line_boxes = extract_line_boxes(current_page.image)
     line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
     dimensions = get_image_dimensions(current_page.image)
@@ -168,6 +170,51 @@ def file_view(file_id):
         image_dimensions=dimensions,
         page=page,
         total_pages=total_pages,
+    )
+
+
+@bp.route("/api/files/<int:file_id>/pages/<int:page>", methods=["GET"])
+def get_file_page(file_id, page):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file:
+        abort(404)
+
+    total_pages = FilePage.query.filter_by(file_id=file_id).count()
+    if total_pages == 0 or page < 1 or page > total_pages:
+        abort(404)
+
+    page_obj = FilePage.query.filter_by(file_id=file_id, page_number=page).first()
+    if not page_obj:
+        abort(404)
+
+    transcription = page_obj.transcription or ""
+    transcription_lines = transcription.splitlines() if transcription else []
+    if not transcription_lines:
+        transcription_lines = [""]
+
+    line_boxes = extract_line_boxes(page_obj.image)
+    line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
+    dimensions = get_image_dimensions(page_obj.image)
+
+    image_base64 = base64.b64encode(page_obj.image).decode("utf-8") if page_obj.image else None
+
+    return jsonify(
+        {
+            "file_id": file_id,
+            "page": page,
+            "total_pages": total_pages,
+            "transcription": transcription,
+            "transcription_lines": transcription_lines,
+            "line_boxes": line_boxes,
+            "dimensions": dimensions,
+            "image": {
+                "kind": "image",
+                "content_type": "image/png",
+                "data": image_base64,
+            }
+            if image_base64
+            else None,
+        }
     )
 
 

@@ -152,6 +152,11 @@
     pointer-events: none;
 }
 
+.icon-btn:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
 .page-indicator {
     font-size: 0.85rem;
     font-weight: 600;
