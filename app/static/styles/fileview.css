@@ -71,7 +71,7 @@
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .pdf-stage-wrapper {
@@ -80,6 +80,7 @@
     overflow: hidden;
     background: #111;
     border-radius: 12px;
+    touch-action: none;
 }
 
 .pdf-stage {
@@ -101,58 +102,87 @@
     pointer-events: none;
 }
 
+.pdf-overlay {
+    position: absolute;
+    top: 0.75rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.75rem;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.overlay-group {
+    display: flex;
+    gap: 0.5rem;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 999px;
+    padding: 0.35rem 0.6rem;
+    backdrop-filter: blur(6px);
+    align-items: center;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #f7f7f7;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-1px);
+}
+
+.icon-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.page-indicator {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #f0f0f0;
+    min-width: 3.5rem;
+    text-align: center;
+}
+
 .highlight-overlay {
     position: absolute;
     inset: 0;
     pointer-events: none;
 }
 
-.highlight-rect {
+.line-region {
     position: absolute;
-    border: 3px solid #f7b500;
-    background: rgba(247, 181, 0, 0.2);
     border-radius: 6px;
-    box-shadow: 0 0 10px rgba(247, 181, 0, 0.5);
+    background: rgba(255, 214, 102, 0.18);
+    border: 1px solid rgba(255, 214, 102, 0.3);
+    transition: background 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
-.viewer-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+.line-region.hover {
+    background: rgba(255, 214, 102, 0.25);
+    border-color: rgba(255, 214, 102, 0.5);
 }
 
-.viewer-controls button,
-#save-transcription {
-    background: #2c2c2c;
-    border: none;
-    color: #eee;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
-    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.5), inset -3px -3px 6px rgba(80, 80, 80, 0.35);
-}
-
-.viewer-controls button:hover,
-#save-transcription:hover {
-    background: #404040;
-    transform: translateY(-1px);
-}
-
-.zoom-controls,
-.page-controls {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-}
-
-.page-indicator {
-    font-weight: 600;
-    color: #ddd;
+.line-region.active {
+    background: rgba(247, 181, 0, 0.3);
+    border-color: rgba(247, 181, 0, 0.8);
+    box-shadow: 0 0 16px rgba(247, 181, 0, 0.45);
 }
 
 .transcription-panel {
@@ -163,7 +193,7 @@
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .panel-header {
@@ -173,47 +203,68 @@
     gap: 1rem;
 }
 
-#transcription-editor {
-    width: 100%;
-    min-height: 200px;
-    resize: vertical;
-    background: #111;
-    border: 1px solid #333;
-    color: #f0f0f0;
-    border-radius: 12px;
-    padding: 1rem;
-    font-family: 'Courier New', monospace;
-    font-size: 1rem;
-    line-height: 1.5;
+#save-transcription {
+    background: linear-gradient(135deg, #2f2f2f, #1b1b1b);
+    border: none;
+    color: #f3f3f3;
+    padding: 0.65rem 1.75rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.5), inset -3px -3px 6px rgba(80, 80, 80, 0.35);
 }
 
-.transcription-helper h4 {
-    margin: 0 0 0.5rem;
-    font-size: 1rem;
-    color: #f0f0f0;
+#save-transcription:not([disabled]):hover {
+    background: linear-gradient(135deg, #3c3c3c, #1f1f1f);
+    transform: translateY(-1px);
 }
 
-.transcription-lines {
-    max-height: 340px;
-    overflow-y: auto;
+#save-transcription[disabled] {
+    opacity: 0.45;
+    cursor: default;
+}
+
+#save-transcription.has-changes {
+    box-shadow: 0 0 12px rgba(247, 181, 0, 0.35), inset 3px 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.panel-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #cfcfcf;
+}
+
+.transcription-helper {
     background: #161616;
     border-radius: 12px;
     padding: 1rem;
     border: 1px solid #2f2f2f;
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.transcription-lines {
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
 }
 
 .transcription-line {
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    transition: background 0.2s ease, color 0.2s ease;
-    cursor: pointer;
-    border: 1px solid transparent;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
 
 .transcription-line:hover {
@@ -221,27 +272,145 @@
 }
 
 .transcription-line.active {
-    background: rgba(247, 181, 0, 0.15);
-    border-color: rgba(247, 181, 0, 0.6);
+    background: rgba(247, 181, 0, 0.18);
+    border-color: rgba(247, 181, 0, 0.65);
+    box-shadow: 0 0 14px rgba(247, 181, 0, 0.25);
 }
 
-.word {
+.transcription-line.editing {
+    background: rgba(247, 181, 0, 0.24);
+    border-color: rgba(247, 181, 0, 0.85);
+}
+
+.line-number {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #9c9c9c;
+    min-width: 2.5rem;
+    text-align: right;
+    padding-top: 0.2rem;
+}
+
+.line-main {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.line-text {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: #f5f5f5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.line-text.is-empty {
+    font-style: italic;
+    color: #9a9a9a;
+}
+
+.line-actions {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.transcription-line:hover .line-actions,
+.transcription-line.active .line-actions,
+.transcription-line.editing .line-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.line-actions .icon-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.95rem;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.line-actions .icon-btn:hover {
+    background: rgba(247, 181, 0, 0.7);
+    color: #111;
+}
+
+.line-editor {
+    width: 100%;
+    min-height: 2.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(247, 181, 0, 0.8);
+    background: #1b1b1b;
     color: #f5f5f5;
     font-family: 'Courier New', monospace;
-    font-size: 0.95rem;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    padding: 0.5rem 0.6rem;
+    resize: vertical;
 }
 
-.word.space {
-    width: 0.5rem;
+.line-editor:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(247, 181, 0, 0.5);
 }
 
-.word.empty {
-    font-style: italic;
-    color: #999;
+#transcription-editor {
+    display: none;
+}
+
+.transcription-lines::-webkit-scrollbar {
+    width: 8px;
+}
+
+.transcription-lines::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+}
+
+@media (max-width: 1200px) {
+    .pdf-overlay {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .overlay-group {
+        width: fit-content;
+    }
 }
 
 @media (max-width: 992px) {
     .viewer-editor {
         flex-direction: column;
+    }
+
+    .transcription-lines {
+        max-height: 360px;
+    }
+}
+
+@media (max-width: 600px) {
+    .panel-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #save-transcription {
+        width: 100%;
+    }
+
+    .overlay-group {
+        padding: 0.3rem 0.5rem;
+    }
+
+    .icon-btn {
+        width: 2rem;
+        height: 2rem;
     }
 }

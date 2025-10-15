@@ -19,6 +19,26 @@
     <div class="viewer-editor">
       <div class="pdf-viewer">
         <div class="pdf-stage-wrapper">
+          <div class="pdf-overlay">
+            <div class="overlay-group zoom-controls">
+              <button type="button" class="icon-btn" id="zoom-out" aria-label="Zoom out">&#8722;</button>
+              <button type="button" class="icon-btn" id="zoom-in" aria-label="Zoom in">&#43;</button>
+              <button type="button" class="icon-btn" id="reset-view" aria-label="Fit page">&#9974;</button>
+            </div>
+            <div class="overlay-group page-controls">
+              {% if page > 1 %}
+                <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" aria-label="Previous page">&laquo;</a>
+              {% else %}
+                <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
+              {% endif %}
+              <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
+              {% if page < total_pages %}
+                <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
+              {% else %}
+                <span class="icon-btn disabled" aria-hidden="true">&raquo;</span>
+              {% endif %}
+            </div>
+          </div>
           {% if image_dimensions %}
             {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
           {% else %}
@@ -29,65 +49,30 @@
             <div id="highlight-overlay" class="highlight-overlay"></div>
           </div>
         </div>
-        <div class="viewer-controls">
-          <div class="zoom-controls">
-            <button type="button" id="zoom-in">Zoom In</button>
-            <button type="button" id="zoom-out">Zoom Out</button>
-            <button type="button" id="reset-view">Reset View</button>
-          </div>
-          <div class="page-controls">
-            {% if page > 1 %}
-              <a class="btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}">&laquo; Prev</a>
-            {% else %}
-              <span class="btn disabled">&laquo; Prev</span>
-            {% endif %}
-            <span class="page-indicator">Page {{ page }} of {{ total_pages }}</span>
-            {% if page < total_pages %}
-              <a class="btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}">Next &raquo;</a>
-            {% else %}
-              <span class="btn disabled">Next &raquo;</span>
-            {% endif %}
-          </div>
-        </div>
       </div>
 
       <div class="transcription-panel">
         <div class="panel-header">
           <h3>Transcription</h3>
-          <button type="button" id="save-transcription">Save Changes</button>
+          <button type="button" id="save-transcription" disabled>Save changes</button>
         </div>
-        <textarea id="transcription-editor" spellcheck="false">{{ transcription }}</textarea>
+        <p class="panel-subtitle">Double-click a line or use the pencil icon to edit. Click elsewhere to keep the change.</p>
         <div class="transcription-helper">
-          <h4>Click a line to highlight it on the page:</h4>
-          <div id="transcription-lines" class="transcription-lines">
-            {% for line in transcription_lines %}
-              <div class="transcription-line" data-line-index="{{ loop.index0 }}">
-                {% if line.strip() %}
-                  {% for word in line.split(' ') %}
-                    {% if word %}
-                      <span class="word">{{ word }}</span>
-                    {% else %}
-                      <span class="word space">&nbsp;</span>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="word empty">(blank line)</span>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
+          <div id="transcription-lines" class="transcription-lines"></div>
         </div>
+        <textarea id="transcription-editor" spellcheck="false" hidden>{{ transcription }}</textarea>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-8nZx09te43Q6rY7DKY2YgDD10GpS1Ry6j8TDIrS9azI=" crossorigin="anonymous"></script>
   <script>
-    const lineBoxes = {{ line_boxes | tojson }};
+    const rawLineBoxes = {{ line_boxes | tojson }};
     const fileId = {{ file_id }};
     const pageNumber = {{ page }};
 
     const pdfStage = document.getElementById('pdf-stage');
+    const pdfWrapper = pdfStage.parentElement;
     const highlightOverlay = document.getElementById('highlight-overlay');
     const transcriptionEditor = document.getElementById('transcription-editor');
     const saveButton = document.getElementById('save-transcription');
@@ -95,131 +80,364 @@
 
     const panzoomInstance = Panzoom(pdfStage, {
       contain: 'outside',
-      maxScale: 4,
+      maxScale: 5,
       minScale: 0.5,
       cursor: 'grab'
     });
 
-    pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
+    pdfWrapper.addEventListener('wheel', panzoomInstance.zoomWithWheel);
 
     document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
     document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
     document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
 
-    function clearHighlight() {
-      highlightOverlay.innerHTML = '';
-      transcriptionLinesContainer.querySelectorAll('.transcription-line').forEach((line) => {
-        line.classList.remove('active');
-      });
+    const lines = transcriptionEditor.value.length ? transcriptionEditor.value.split('\n') : [''];
+    const lineBoxes = Array.isArray(rawLineBoxes) ? rawLineBoxes.slice(0, lines.length) : [];
+    while (lineBoxes.length < lines.length) {
+      lineBoxes.push(null);
     }
 
-    function renderHighlight(box) {
-      highlightOverlay.innerHTML = '';
-      if (!box) {
-        return;
-      }
-      const rect = document.createElement('div');
-      rect.className = 'highlight-rect';
-      rect.style.left = `${box.x * 100}%`;
-      rect.style.top = `${box.y * 100}%`;
-      rect.style.width = `${box.width * 100}%`;
-      rect.style.height = `${box.height * 100}%`;
-      highlightOverlay.appendChild(rect);
+    const overlayRects = [];
+    let activeLineIndex = null;
+    let activeLineEl = null;
+    let activeEditor = null;
+    let isDirty = false;
+
+    function updateHiddenTranscription() {
+      transcriptionEditor.value = lines.join('\n');
     }
 
-    function ensureLineBoxesLength(count) {
-      if (!Array.isArray(lineBoxes)) {
-        return;
-      }
-      if (lineBoxes.length < count) {
-        const diff = count - lineBoxes.length;
-        for (let i = 0; i < diff; i += 1) {
-          lineBoxes.push(null);
-        }
+    function setLineActions(lineEl) {
+      const actions = lineEl.querySelector('.line-actions');
+      actions.innerHTML = '';
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'icon-btn line-edit-btn';
+      editBtn.setAttribute('aria-label', 'Edit line');
+      editBtn.innerHTML = '&#9998;';
+      actions.appendChild(editBtn);
+      lineEl.classList.remove('editing');
+    }
+
+    function applyLineText(lineEl, text) {
+      const textEl = lineEl.querySelector('.line-text');
+      const cleanText = text.replace(/\r/g, '');
+      if (!cleanText.length) {
+        textEl.textContent = '(blank line)';
+        textEl.classList.add('is-empty');
+        lineEl.classList.add('is-empty');
+      } else {
+        textEl.textContent = cleanText;
+        textEl.classList.remove('is-empty');
+        lineEl.classList.remove('is-empty');
       }
     }
 
-    function renderLinesFromText(text) {
-      const lines = text.split('\n');
-      ensureLineBoxesLength(lines.length);
+    function renderLines() {
       transcriptionLinesContainer.innerHTML = '';
-      lines.forEach((line, index) => {
+      lines.forEach((text, index) => {
         const lineEl = document.createElement('div');
         lineEl.className = 'transcription-line';
         lineEl.dataset.lineIndex = index;
 
-        if (line.trim().length === 0) {
-          const empty = document.createElement('span');
-          empty.className = 'word empty';
-          empty.textContent = '(blank line)';
-          lineEl.appendChild(empty);
-        } else {
-          line.split(/(\s+)/).forEach((token) => {
-            if (!token) {
-              return;
-            }
-            const word = document.createElement('span');
-            if (/\s+/.test(token)) {
-              word.className = 'word space';
-              word.innerHTML = '&nbsp;';
-            } else {
-              word.className = 'word';
-              word.textContent = token;
-            }
-            lineEl.appendChild(word);
-          });
-        }
+        const numberEl = document.createElement('span');
+        numberEl.className = 'line-number';
+        numberEl.textContent = String(index + 1);
+
+        const mainEl = document.createElement('div');
+        mainEl.className = 'line-main';
+
+        const textEl = document.createElement('div');
+        textEl.className = 'line-text';
+        mainEl.appendChild(textEl);
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'line-actions';
+        mainEl.appendChild(actionsEl);
+
+        lineEl.appendChild(numberEl);
+        lineEl.appendChild(mainEl);
 
         transcriptionLinesContainer.appendChild(lineEl);
+        applyLineText(lineEl, text);
+        setLineActions(lineEl);
       });
     }
 
-    function handleLineSelection(event) {
+    function buildOverlay() {
+      highlightOverlay.innerHTML = '';
+      lineBoxes.forEach((box, index) => {
+        if (!box) {
+          overlayRects[index] = null;
+          return;
+        }
+        const rect = document.createElement('div');
+        rect.className = 'line-region';
+        rect.dataset.lineIndex = index;
+        rect.style.left = `${box.x * 100}%`;
+        rect.style.top = `${box.y * 100}%`;
+        rect.style.width = `${box.width * 100}%`;
+        rect.style.height = `${box.height * 100}%`;
+        highlightOverlay.appendChild(rect);
+        overlayRects[index] = rect;
+      });
+    }
+
+    function highlightLine(index) {
+      if (index === null || Number.isNaN(index)) {
+        return;
+      }
+      if (activeEditor && activeEditor.index !== index) {
+        closeEditor(activeEditor, { commit: true });
+      }
+      if (activeLineEl) {
+        activeLineEl.classList.remove('active');
+      }
+      overlayRects.forEach((rect) => {
+        if (rect) {
+          rect.classList.remove('active');
+        }
+      });
+      const nextLine = transcriptionLinesContainer.querySelector(`[data-line-index="${index}"]`);
+      if (!nextLine) {
+        activeLineEl = null;
+        activeLineIndex = null;
+        return;
+      }
+      nextLine.classList.add('active');
+      const overlay = overlayRects[index];
+      if (overlay) {
+        overlay.classList.add('active');
+      }
+      nextLine.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      activeLineEl = nextLine;
+      activeLineIndex = index;
+    }
+
+    function markDirty() {
+      if (isDirty) {
+        return;
+      }
+      isDirty = true;
+      saveButton.disabled = false;
+      saveButton.textContent = 'Save changes';
+      saveButton.classList.add('has-changes');
+    }
+
+    function resetDirtyState() {
+      isDirty = false;
+      saveButton.disabled = true;
+      saveButton.textContent = 'Save changes';
+      saveButton.classList.remove('has-changes');
+    }
+
+    function closeEditor(editor, { commit }) {
+      if (!editor) {
+        return;
+      }
+      const { lineEl, index, textarea, original } = editor;
+      const nextValue = commit ? textarea.value : original;
+      const changed = commit && nextValue !== original;
+      lines[index] = nextValue;
+      applyLineText(lineEl, nextValue);
+      setLineActions(lineEl);
+      lineEl.classList.remove('editing');
+      delete lineEl.dataset.editing;
+      activeEditor = null;
+      updateHiddenTranscription();
+      if (changed) {
+        markDirty();
+      }
+    }
+
+    function openEditor(lineEl, index) {
+      if (lineEl.dataset.editing === 'true') {
+        return;
+      }
+      if (activeEditor) {
+        closeEditor(activeEditor, { commit: true });
+      }
+      const textEl = lineEl.querySelector('.line-text');
+      const originalText = lines[index] ?? '';
+      const textarea = document.createElement('textarea');
+      textarea.className = 'line-editor';
+      textarea.value = originalText;
+      textEl.classList.remove('is-empty');
+      textEl.innerHTML = '';
+      textEl.appendChild(textarea);
+
+      const actions = lineEl.querySelector('.line-actions');
+      actions.innerHTML = '';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'icon-btn line-commit-btn';
+      saveBtn.setAttribute('aria-label', 'Save line');
+      saveBtn.innerHTML = '&#10003;';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'icon-btn line-cancel-btn';
+      cancelBtn.setAttribute('aria-label', 'Undo edit');
+      cancelBtn.innerHTML = '&#10005;';
+      actions.appendChild(saveBtn);
+      actions.appendChild(cancelBtn);
+
+      lineEl.dataset.editing = 'true';
+      lineEl.classList.add('editing');
+      activeEditor = { lineEl, index, textarea, original: originalText };
+
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.select();
+      });
+
+      textarea.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          closeEditor(activeEditor, { commit: true });
+        }
+      });
+
+      textarea.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (activeEditor && activeEditor.textarea === textarea) {
+            closeEditor(activeEditor, { commit: true });
+          }
+        }, 10);
+      });
+    }
+
+    function clearActiveLine() {
+      if (activeLineEl) {
+        activeLineEl.classList.remove('active');
+      }
+      overlayRects.forEach((rect) => rect && rect.classList.remove('active'));
+      activeLineEl = null;
+      activeLineIndex = null;
+    }
+
+    transcriptionLinesContainer.addEventListener('click', (event) => {
+      const commitBtn = event.target.closest('.line-commit-btn');
+      if (commitBtn && activeEditor) {
+        event.stopPropagation();
+        event.preventDefault();
+        closeEditor(activeEditor, { commit: true });
+        return;
+      }
+
+      const cancelBtn = event.target.closest('.line-cancel-btn');
+      if (cancelBtn && activeEditor) {
+        event.stopPropagation();
+        event.preventDefault();
+        closeEditor(activeEditor, { commit: false });
+        return;
+      }
+
+      const lineEl = event.target.closest('.transcription-line');
+      if (!lineEl) {
+        if (activeEditor) {
+          closeEditor(activeEditor, { commit: true });
+        }
+        clearActiveLine();
+        return;
+      }
+
+      const index = parseInt(lineEl.dataset.lineIndex, 10);
+      highlightLine(index);
+
+      if (event.target.closest('.line-edit-btn')) {
+        event.preventDefault();
+        openEditor(lineEl, index);
+      }
+    });
+
+    transcriptionLinesContainer.addEventListener('dblclick', (event) => {
       const lineEl = event.target.closest('.transcription-line');
       if (!lineEl) {
         return;
       }
-      const lineIndex = parseInt(lineEl.dataset.lineIndex, 10);
-      clearHighlight();
-      lineEl.classList.add('active');
-      renderHighlight(lineBoxes[lineIndex]);
-    }
+      const index = parseInt(lineEl.dataset.lineIndex, 10);
+      highlightLine(index);
+      openEditor(lineEl, index);
+    });
 
-    transcriptionLinesContainer.addEventListener('click', handleLineSelection);
+    transcriptionLinesContainer.addEventListener('mouseover', (event) => {
+      const lineEl = event.target.closest('.transcription-line');
+      if (!lineEl) {
+        overlayRects.forEach((rect) => rect && rect.classList.remove('hover'));
+        return;
+      }
+      const index = parseInt(lineEl.dataset.lineIndex, 10);
+      overlayRects.forEach((rect, rectIndex) => {
+        if (!rect) {
+          return;
+        }
+        if (rectIndex === index) {
+          rect.classList.add('hover');
+        } else {
+          rect.classList.remove('hover');
+        }
+      });
+    });
 
-    transcriptionEditor.addEventListener('input', () => {
-      clearHighlight();
-      renderLinesFromText(transcriptionEditor.value);
+    transcriptionLinesContainer.addEventListener('mouseleave', () => {
+      overlayRects.forEach((rect) => rect && rect.classList.remove('hover'));
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!activeEditor) {
+        return;
+      }
+      if (event.target.closest('.transcription-line')) {
+        return;
+      }
+      closeEditor(activeEditor, { commit: true });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && activeEditor) {
+        event.preventDefault();
+        closeEditor(activeEditor, { commit: false });
+      }
     });
 
     saveButton.addEventListener('click', async () => {
+      if (activeEditor) {
+        closeEditor(activeEditor, { commit: true });
+      }
+      if (!isDirty) {
+        return;
+      }
       saveButton.disabled = true;
       saveButton.textContent = 'Saving...';
-      clearHighlight();
+      saveButton.classList.remove('has-changes');
       try {
         const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ transcription: transcriptionEditor.value })
+          body: JSON.stringify({ transcription: lines.join('\n') })
         });
         if (!response.ok) {
           throw new Error('Failed to save transcription');
         }
-        saveButton.textContent = 'Saved!';
+        saveButton.textContent = 'Saved';
+        setTimeout(() => {
+          if (!isDirty) {
+            saveButton.textContent = 'Save changes';
+          }
+        }, 2000);
+        resetDirtyState();
       } catch (error) {
         console.error(error);
-        saveButton.textContent = 'Error - Retry';
-      } finally {
-        setTimeout(() => {
-          saveButton.disabled = false;
-          saveButton.textContent = 'Save Changes';
-        }, 1500);
+        saveButton.disabled = false;
+        saveButton.textContent = 'Retry save';
+        saveButton.classList.add('has-changes');
       }
     });
 
-    // Initial render ensures the helper lines reflect the stored text.
-    renderLinesFromText(transcriptionEditor.value);
+    renderLines();
+    buildOverlay();
+    updateHiddenTranscription();
   </script>
 {% endblock %}
