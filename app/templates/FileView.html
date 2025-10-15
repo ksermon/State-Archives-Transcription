@@ -6,34 +6,436 @@
 
 {% block content %}
   <div class="main-box">
-    <h1 class="file-title">File: {{ name }}</h1>
-    <div class="description-block">
-      <p class="description">Description: {{ description }}</p>
+    <div class="page-header">
+      <div>
+        <h1 class="file-title">File: {{ name }}</h1>
+        <p class="description">{{ description }}</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn" href="{{ url_for('main.download_transcription', file_id=file_id) }}">Download Text</a>
+      </div>
     </div>
 
-    <div class="container" style="display: flex; gap: 40px;">
-      <div class="ocr-image-box" style="flex: 1; text-align: center;">
-        <img src="data:image/png;base64,{{ image }}" alt="Page image" style="max-width: 100%; height: auto;" />
-        <div class="pdf-controller" style="margin-top:10px;">
-          {% if page > 1 %}
-            <a href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}">&laquo; Prev</a>
+    <div class="viewer-editor">
+      <div class="pdf-viewer">
+        <div class="pdf-stage-wrapper">
+          {% if image_dimensions %}
+            {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
           {% else %}
-            <span style="color: #ccc;">&laquo; Prev</span>
+            {% set aspect = None %}
           {% endif %}
-          <span>Page {{ page }} of {{ total_pages }}</span>
-          {% if page < total_pages %}
-            <a href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}">Next &raquo;</a>
-          {% else %}
-            <span style="color: #ccc;">Next &raquo;</span>
-          {% endif %}
+          <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
+            <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
+            <div id="highlight-overlay" class="highlight-overlay"></div>
+          </div>
+          <div class="pdf-overlay-controls" role="group" aria-label="PDF viewer controls">
+            <div class="control-group zoom">
+              <button type="button" id="zoom-out" class="control-button" title="Zoom out">
+                <span aria-hidden="true">−</span>
+                <span class="sr-only">Zoom out</span>
+              </button>
+              <button type="button" id="reset-view" class="control-button" title="Fit to screen">
+                <span aria-hidden="true">⤢</span>
+                <span class="sr-only">Fit view</span>
+              </button>
+              <button type="button" id="zoom-in" class="control-button" title="Zoom in">
+                <span aria-hidden="true">+</span>
+                <span class="sr-only">Zoom in</span>
+              </button>
+            </div>
+            <div class="control-group pages">
+              {% if page > 1 %}
+                <a class="control-button" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" title="Previous page">
+                  <span aria-hidden="true">◀</span>
+                  <span class="sr-only">Previous page</span>
+                </a>
+              {% else %}
+                <span class="control-button disabled" aria-disabled="true">
+                  <span aria-hidden="true">◀</span>
+                  <span class="sr-only">Previous page</span>
+                </span>
+              {% endif %}
+              <span class="page-indicator">Page {{ page }} of {{ total_pages }}</span>
+              {% if page < total_pages %}
+                <a class="control-button" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" title="Next page">
+                  <span aria-hidden="true">▶</span>
+                  <span class="sr-only">Next page</span>
+                </a>
+              {% else %}
+                <span class="control-button disabled" aria-disabled="true">
+                  <span aria-hidden="true">▶</span>
+                  <span class="sr-only">Next page</span>
+                </span>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
-      <div class="ocr-transcription-box" style="flex: 1;">
-        <h3>Transcription</h3>
-        <div class="transcripts" style="white-space: pre-wrap;">
-          {{ transcription | markdown_bold_to_html | safe }}
+
+      <div class="transcription-panel">
+        <div class="panel-header">
+          <h3>Transcription</h3>
+          <button type="button" id="save-transcription">Save Changes</button>
         </div>
+        <p class="panel-subtext">Double-click a line or use the edit icon to update the transcription. Selecting a different line or clicking outside will apply your edits.</p>
+        <div id="transcription-lines" class="transcription-lines" aria-live="polite"></div>
       </div>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-8nZx09te43Q6rY7DKY2YgDD10GpS1Ry6j8TDIrS9azI=" crossorigin="anonymous"></script>
+  <script>
+    const lineBoxesData = {{ line_boxes | tojson }};
+    const initialLines = {{ transcription_lines | tojson }};
+    const fileId = {{ file_id }};
+    const pageNumber = {{ page }};
+
+    const pdfStage = document.getElementById('pdf-stage');
+    const highlightOverlay = document.getElementById('highlight-overlay');
+    const saveButton = document.getElementById('save-transcription');
+    const transcriptionLinesContainer = document.getElementById('transcription-lines');
+    const panzoomInstance = Panzoom(pdfStage, {
+      contain: 'outside',
+      maxScale: 4,
+      minScale: 0.5,
+      cursor: 'grab'
+    });
+
+    pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel, { passive: true });
+
+    document.getElementById('zoom-in').addEventListener('click', (event) => {
+      event.preventDefault();
+      panzoomInstance.zoomIn();
+    });
+    document.getElementById('zoom-out').addEventListener('click', (event) => {
+      event.preventDefault();
+      panzoomInstance.zoomOut();
+    });
+    document.getElementById('reset-view').addEventListener('click', (event) => {
+      event.preventDefault();
+      panzoomInstance.reset();
+    });
+
+    const linesState = Array.isArray(initialLines) ? [...initialLines] : [];
+    if (linesState.length === 0) {
+      linesState.push('');
+    }
+    const lineBoxes = Array.isArray(lineBoxesData) ? [...lineBoxesData] : [];
+    const lineElements = [];
+    const overlayRects = [];
+
+    let activeLineIndex = null;
+    let editingLineIndex = null;
+    let editingOriginalText = '';
+
+    function ensureLineBoxesLength(count) {
+      if (lineBoxes.length < count) {
+        const missing = count - lineBoxes.length;
+        for (let i = 0; i < missing; i += 1) {
+          lineBoxes.push(null);
+        }
+      }
+    }
+
+    function autoSizeEditor(editor) {
+      if (!editor) {
+        return;
+      }
+      editor.style.height = 'auto';
+      editor.style.height = `${Math.max(editor.scrollHeight, 32)}px`;
+    }
+
+    function updateOverlayHighlight() {
+      overlayRects.forEach((rect, index) => {
+        if (!rect) {
+          return;
+        }
+        rect.classList.toggle('active', index === activeLineIndex);
+      });
+    }
+
+    function ensureLineVisible(index) {
+      const line = lineElements[index];
+      if (!line) {
+        return;
+      }
+      const containerRect = transcriptionLinesContainer.getBoundingClientRect();
+      const lineRect = line.container.getBoundingClientRect();
+      if (lineRect.top < containerRect.top || lineRect.bottom > containerRect.bottom) {
+        line.container.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+
+    function activateLine(index) {
+      if (typeof index !== 'number' || Number.isNaN(index)) {
+        if (activeLineIndex !== null && lineElements[activeLineIndex]) {
+          lineElements[activeLineIndex].container.classList.remove('active');
+        }
+        activeLineIndex = null;
+        updateOverlayHighlight();
+        return;
+      }
+
+      if (editingLineIndex !== null && editingLineIndex !== index) {
+        finalizeEditing(true);
+      }
+
+      if (activeLineIndex !== null && lineElements[activeLineIndex]) {
+        lineElements[activeLineIndex].container.classList.remove('active');
+      }
+
+      activeLineIndex = index;
+      const line = lineElements[index];
+      if (line) {
+        line.container.classList.add('active');
+      }
+      updateOverlayHighlight();
+      ensureLineVisible(index);
+    }
+
+    function updateLineContent(index, text) {
+      const line = lineElements[index];
+      if (!line) {
+        return;
+      }
+      const value = text ?? '';
+      linesState[index] = value;
+      line.textWrapper.textContent = value;
+      line.container.classList.toggle('is-empty', value.trim().length === 0);
+      line.editor.value = value;
+      autoSizeEditor(line.editor);
+    }
+
+    function finalizeEditing(saveChanges) {
+      if (editingLineIndex === null) {
+        return;
+      }
+      const index = editingLineIndex;
+      const line = lineElements[index];
+      if (!line) {
+        editingLineIndex = null;
+        editingOriginalText = '';
+        return;
+      }
+
+      const shouldSave = saveChanges !== false;
+      const newValue = shouldSave ? line.editor.value : editingOriginalText;
+
+      line.container.classList.remove('editing');
+      line.editButton.classList.remove('hidden');
+      line.confirmButton.classList.add('hidden');
+      line.cancelButton.classList.add('hidden');
+      line.editor.blur();
+
+      if (!shouldSave) {
+        line.editor.value = editingOriginalText;
+      }
+
+      updateLineContent(index, newValue);
+
+      editingLineIndex = null;
+      editingOriginalText = '';
+    }
+
+    function beginEditing(index) {
+      const line = lineElements[index];
+      if (!line) {
+        return;
+      }
+
+      if (editingLineIndex !== null && editingLineIndex !== index) {
+        finalizeEditing(true);
+      }
+
+      activateLine(index);
+
+      editingLineIndex = index;
+      editingOriginalText = line.editor.value;
+
+      line.container.classList.add('editing');
+      line.editButton.classList.add('hidden');
+      line.confirmButton.classList.remove('hidden');
+      line.cancelButton.classList.remove('hidden');
+      autoSizeEditor(line.editor);
+      line.editor.focus({ preventScroll: true });
+      line.editor.setSelectionRange(line.editor.value.length, line.editor.value.length);
+    }
+
+    function registerLineEvents(line, index) {
+      line.container.addEventListener('click', (event) => {
+        if (event.target.closest('.icon-button')) {
+          return;
+        }
+        activateLine(index);
+      });
+
+      line.container.addEventListener('dblclick', (event) => {
+        event.preventDefault();
+        beginEditing(index);
+      });
+
+      line.editButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        beginEditing(index);
+      });
+
+      line.confirmButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        finalizeEditing(true);
+      });
+
+      line.cancelButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        finalizeEditing(false);
+      });
+
+      line.editor.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          finalizeEditing(true);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          finalizeEditing(false);
+        }
+      });
+
+      line.editor.addEventListener('input', () => {
+        autoSizeEditor(line.editor);
+      });
+    }
+
+    function createLineElement(text, index) {
+      const container = document.createElement('div');
+      container.className = 'transcription-line';
+      container.dataset.lineIndex = index;
+
+      const textWrapper = document.createElement('div');
+      textWrapper.className = 'line-text';
+      container.appendChild(textWrapper);
+
+      const editor = document.createElement('textarea');
+      editor.className = 'line-editor';
+      editor.setAttribute('spellcheck', 'false');
+      editor.rows = 1;
+      container.appendChild(editor);
+
+      const actions = document.createElement('div');
+      actions.className = 'line-actions';
+
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'icon-button edit';
+      editButton.innerHTML = '<span aria-hidden="true">✎</span><span class="sr-only">Edit line</span>';
+      actions.appendChild(editButton);
+
+      const confirmButton = document.createElement('button');
+      confirmButton.type = 'button';
+      confirmButton.className = 'icon-button confirm hidden';
+      confirmButton.innerHTML = '<span aria-hidden="true">✔</span><span class="sr-only">Save line</span>';
+      actions.appendChild(confirmButton);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'icon-button cancel hidden';
+      cancelButton.innerHTML = '<span aria-hidden="true">✕</span><span class="sr-only">Discard changes</span>';
+      actions.appendChild(cancelButton);
+
+      container.appendChild(actions);
+
+      transcriptionLinesContainer.appendChild(container);
+
+      const line = {
+        container,
+        textWrapper,
+        editor,
+        editButton,
+        confirmButton,
+        cancelButton,
+      };
+
+      registerLineEvents(line, index);
+
+      return line;
+    }
+
+    function renderOverlayBoxes() {
+      highlightOverlay.innerHTML = '';
+      lineBoxes.forEach((box, index) => {
+        if (!box) {
+          overlayRects[index] = null;
+          return;
+        }
+        const rect = document.createElement('div');
+        rect.className = 'line-box';
+        rect.style.left = `${box.x * 100}%`;
+        rect.style.top = `${box.y * 100}%`;
+        rect.style.width = `${box.width * 100}%`;
+        rect.style.height = `${box.height * 100}%`;
+        rect.dataset.lineIndex = index;
+        highlightOverlay.appendChild(rect);
+        overlayRects[index] = rect;
+      });
+      updateOverlayHighlight();
+    }
+
+    function buildTranscriptionLines() {
+      transcriptionLinesContainer.innerHTML = '';
+      lineElements.length = 0;
+      ensureLineBoxesLength(linesState.length);
+      linesState.forEach((line, index) => {
+        const lineObj = createLineElement(line, index);
+        lineElements[index] = lineObj;
+        updateLineContent(index, line);
+      });
+    }
+
+    saveButton.addEventListener('click', async () => {
+      if (editingLineIndex !== null) {
+        finalizeEditing(true);
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving...';
+
+      const payload = linesState.join('\n');
+
+      try {
+        const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ transcription: payload })
+        });
+        if (!response.ok) {
+          throw new Error('Failed to save transcription');
+        }
+        saveButton.textContent = 'Saved!';
+      } catch (error) {
+        console.error(error);
+        saveButton.textContent = 'Error - Retry';
+      } finally {
+        setTimeout(() => {
+          saveButton.disabled = false;
+          saveButton.textContent = 'Save Changes';
+        }, 1500);
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      const clickedInsideLines = transcriptionLinesContainer.contains(event.target);
+      if (!clickedInsideLines) {
+        if (editingLineIndex !== null) {
+          finalizeEditing(true);
+        }
+        if (!event.target.closest('.pdf-overlay-controls')) {
+          activateLine(null);
+        }
+      }
+    });
+
+    ensureLineBoxesLength(linesState.length);
+    buildTranscriptionLines();
+    renderOverlayBoxes();
+  </script>
 {% endblock %}
