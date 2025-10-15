@@ -45,7 +45,7 @@
             {% set aspect = None %}
           {% endif %}
           <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
-            <canvas id="pdf-canvas" class="pdf-canvas" aria-label="Document page"></canvas>
+            <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
             <div id="highlight-overlay" class="highlight-overlay"></div>
           </div>
         </div>
@@ -65,15 +65,13 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
   <script>
     window.FILEVIEW_CONFIG = {
       lineBoxes: {{ line_boxes | tojson }},
       fileId: {{ file_id }},
-      pageNumber: {{ page }},
-      pdfUrl: "{{ url_for('main.stream_file_pdf', file_id=file_id) }}",
-      pdfWorkerSrc: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js"
+      pageNumber: {{ page }}
     };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-8nZx09te43Q6rY7DKY2YgDD10GpS1Ry6j8TDIrS9azI=" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='js/fileview.js') }}"></script>
 {% endblock %}
