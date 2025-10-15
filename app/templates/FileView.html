@@ -26,7 +26,7 @@
           {% endif %}
           <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
             <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
-            <div id="highlight-overlay" class="highlight-overlay"></div>
+            <!-- <div id="highlight-overlay" class="highlight-overlay"></div> -->
           </div>
         </div>
         <div class="viewer-controls">
@@ -106,26 +106,7 @@
       document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
       document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
 
-      function clearHighlight() {
-        highlightOverlay.innerHTML = '';
-        transcriptionLinesContainer.querySelectorAll('.transcription-line').forEach((line) => {
-          line.classList.remove('active');
-        });
-      }
-
-      function renderHighlight(box) {
-        highlightOverlay.innerHTML = '';
-        if (!box) {
-          return;
-        }
-        const rect = document.createElement('div');
-        rect.className = 'highlight-rect';
-        rect.style.left = `${box.x * 100}%`;
-        rect.style.top = `${box.y * 100}%`;
-        rect.style.width = `${box.width * 100}%`;
-        rect.style.height = `${box.height * 100}%`;
-        highlightOverlay.appendChild(rect);
-      }
+      // Highlighting functions removed
 
       function ensureLineBoxesLength(count) {
         if (!Array.isArray(lineBoxes)) {
@@ -166,7 +147,7 @@
                 word.className = 'word';
                 word.textContent = token;
               }
-              const wordIndex = line.split(/\s+/).indexOf(token); 
+              // const wordIndex = line.split(/\s+/).indexOf(token); 
               lineEl.appendChild(word);
             });
           }
@@ -175,28 +156,15 @@
         });
       }
 
-      function handleLineSelection(event) {
-        const lineEl = event.target.closest('.transcription-line');
-        if (!lineEl) {
-          return;
-        }
-        const lineIndex = parseInt(lineEl.dataset.lineIndex, 10);
-        clearHighlight();
-        lineEl.classList.add('active');
-        renderHighlight(lineBoxes[lineIndex]);
-      }
-
-      transcriptionLinesContainer.addEventListener('click', handleLineSelection);
+      // Highlighting and line selection handlers removed
 
       transcriptionEditor.addEventListener('input', () => {
-        clearHighlight();
         renderLinesFromText(transcriptionEditor.value);
       });
 
       saveButton.addEventListener('click', async () => {
         saveButton.disabled = true;
         saveButton.textContent = 'Saving...';
-        clearHighlight();
         try {
           const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
             method: 'PUT',
