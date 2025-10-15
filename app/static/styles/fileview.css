@@ -81,11 +81,6 @@
     background: #111;
     border-radius: 12px;
     touch-action: none;
-    cursor: grab;
-}
-
-.pdf-stage-wrapper.is-dragging {
-    cursor: grabbing;
 }
 
 .pdf-stage {
@@ -93,8 +88,7 @@
     width: 100%;
     height: 0;
     padding-bottom: var(--pdf-aspect, 141%);
-    transform-origin: top left;
-    touch-action: none;
+    transform-origin: center center;
 }
 
 #pdf-image {
