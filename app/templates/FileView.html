@@ -57,25 +57,6 @@
           <button type="button" id="save-transcription">Save Changes</button>
         </div>
         <textarea id="transcription-editor" spellcheck="false">{{ transcription }}</textarea>
-        <div class="transcription-helper">
-          <h4>Click a line to highlight it on the page:</h4>
-          <div id="transcription-lines" class="transcription-lines">
-            {% for line in transcription_lines %}
-              <div class="transcription-line" data-line-index="{{ loop.index0 }}">
-                {% if line.strip() %}
-                  {% for word in line.split(' ') %}
-                    {% if word %}
-                      <span class="word">{{ word }}</span>
-                    {% else %}
-                      <span class="word space">&nbsp;</span>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="word empty">(blank line)</span>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
         </div>
       </div>
     </div>
