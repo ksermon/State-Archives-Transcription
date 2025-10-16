@@ -23,9 +23,15 @@
         <input id="file" name="file" type="file" required/>
       </label>
 
+      <div id="error-message" class="error-message" style="display:none;"></div>
       <button type="submit">Upload</button>
       <div id="loading-spinner" style="display:none; text-align:center;">
         <p>Processing your file, please wait...</p>
+        <!-- Progress bar container -->
+        <div id="progress-bar-container" style="width: 100%; background: #eee; border-radius: 8px; margin: 10px 0;">
+          <div id="progress-bar" style="width: 0%; height: 18px; background: #4caf50; border-radius: 8px;"></div>
+        </div>
+        <span id="progress-text">0/0 pages processed</span>
         <span class="spinner">
           <span></span><span></span><span></span><span></span><span></span><span></span>
         </span>
@@ -33,10 +39,109 @@
     </form>
   </div>
 
+  <!-- Progress bar logic -->
   <script>
-  document.querySelector('.upload-form').addEventListener('submit', function() {
-    document.getElementById('loading-spinner').style.display = 'block';
+  let uploadId = null;
+  let progressInterval = null;
+  let pageUnloading = false;
+
+  // Set flag if user navigates away
+  window.addEventListener('beforeunload', function() {
+    pageUnloading = true;
   });
+
+  document.querySelector('.upload-form').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent default form submission
+
+    const formData = new FormData(this);
+    const fileInput = document.getElementById('file');
+
+    if (!fileInput.files.length) {
+      if (!pageUnloading) alert('Please select a file');
+      return;
+    }
+
+    // Generate upload ID and add to form data
+    uploadId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    formData.append('upload_id', uploadId);
+
+    // Show loading spinner
+    document.getElementById('loading-spinner').style.display = 'block';
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('progress-text').textContent = 'Starting upload...';
+
+    // Start polling for progress immediately
+    startProgressPolling();
+
+    // Submit form via AJAX
+    fetch('{{ url_for("main.file_upload") }}', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Clear progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+        // Show completion
+        document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('progress-text').textContent = 'Upload complete! Redirecting...';
+        // Redirect to file view
+        setTimeout(() => {
+          window.location.href = data.redirect_url;
+        }, 500);
+      } else {
+        if (!pageUnloading) {
+          alert('Upload failed: ' + (data.error || 'Unknown error'));
+        }
+        document.getElementById('loading-spinner').style.display = 'none';
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Upload error:', error);
+      if (!pageUnloading) {
+        alert('Upload failed. Please try again.');
+      }
+      document.getElementById('loading-spinner').style.display = 'none';
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    });
+  });
+  
+  function startProgressPolling() {
+    // Poll every 500ms for progress updates
+    progressInterval = setInterval(checkProgress, 500);
+  }
+  
+  function checkProgress() {
+    if (!uploadId) return;
+    
+    fetch('{{ url_for("main.upload_progress_status", upload_id="UPLOAD_ID") }}'.replace('UPLOAD_ID', uploadId))
+      .then(response => {
+        if (!response.ok) {
+          // Upload might not be registered yet or already completed
+          return null;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.total && data.processed !== undefined) {
+          const percent = Math.round((data.processed / data.total) * 100);
+          document.getElementById('progress-bar').style.width = percent + '%';
+          document.getElementById('progress-text').textContent = `${data.processed}/${data.total} pages processed`;
+        }
+      })
+      .catch(error => {
+        // Silently ignore errors during polling
+        console.log('Progress check:', error.message);
+      });
+  }
 
   // File preview logic
   document.getElementById('file').addEventListener('change', function(event) {
