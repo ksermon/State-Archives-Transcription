@@ -1,5 +1,5 @@
 import os
-from flask import render_template, request, redirect, flash, url_for, abort
+from flask import render_template, request, redirect, flash, url_for, abort, session, jsonify
 from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 from app.utils.gemini_transcriber import transcribe_images_with_gemini
 
 load_dotenv()
+import uuid
+
+# Dictionary to store upload progress (in production, use Redis or similar)
+upload_progress = {}
 
 def allowed_file(filename):
     return (
@@ -108,9 +112,107 @@ def file_upload():
 
         flash(f'File "{file_name}" uploaded and transcribed using {transcription_method.upper()}!')
         return redirect(url_for("main.file_view", file_id=db_file.id))
+        try:
+            file_name = secure_filename(file.filename)
+            file_content = file.read()
+            images = pdf_to_images_base64(file_content)
+            custom_name = request.form.get("name") or file_name
+            description = request.form.get("description", "")
+            upload_id = request.form.get("upload_id", str(uuid.uuid4()))
+
+            # Store total page count for this upload
+            total_pages = len(images)
+            upload_progress[upload_id] = {
+                'total': total_pages,
+                'processed': 0,
+                'file_id': None
+            }
+
+            # Save the file record first
+            db_file = UploadedFile(
+                name=custom_name,
+                content=file_content,
+                description=description
+            )
+            db.session.add(db_file)
+            db.session.commit() 
+            
+            upload_progress[upload_id]['file_id'] = db_file.id
+
+            # For each image, run OCR and save as FilePage
+            print(f"Number of images: {total_pages}")
+            for idx, img_base64 in enumerate(images):
+                transcription = run_ocr_engine(img_base64)
+                img_bytes = base64.b64decode(img_base64)
+                db_page = FilePage(
+                    file_id=db_file.id,
+                    page_number=idx + 1,
+                    image=img_bytes,
+                    transcription=transcription
+                )
+                db.session.add(db_page)
+                db.session.commit()  # Commit each page for real-time updates
+                
+                # Update progress
+                upload_progress[upload_id]['processed'] = idx + 1
+                print(f"Page {idx + 1}/{total_pages} processed")
+
+            # Clean up progress tracking after completion
+            if upload_id in upload_progress:
+                del upload_progress[upload_id]
+
+            return jsonify({
+                'success': True,
+                'file_id': db_file.id,
+                'redirect_url': url_for("main.file_view", file_id=db_file.id)
+            })
+        except Exception as e:
+            import traceback
+            print("Upload error:", traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
     else:
-        flash("Invalid file type.")
-        return redirect(url_for("main.file_list"))
+        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+
+# Endpoint to check upload progress
+@bp.route("/upload_progress/<upload_id>", methods=["GET"])
+def upload_progress_status(upload_id):
+    if upload_id in upload_progress:
+        progress = upload_progress[upload_id]
+        return jsonify({
+            'total': progress['total'],
+            'processed': progress['processed'],
+            'file_id': progress['file_id']
+        })
+    else:
+        return jsonify({'error': 'Upload not found'}), 404
+
+# Endpoint to check processing status
+@bp.route("/file_processing_status/<int:file_id>", methods=["GET"])
+def file_processing_status(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file:
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Count how many pages have been processed
+    processed_pages = FilePage.query.filter_by(file_id=file_id).count()
+    # Try to get the total from upload_progress if available
+    for progress in upload_progress.values():
+        if progress.get('file_id') == file_id:
+            total_pages = progress['total']
+            break
+    else:
+        # Fallback: parse PDF
+        from .utils import pdf_to_images_base64
+        try:
+            images = pdf_to_images_base64(uploaded_file.content)
+            total_pages = len(images)
+        except:
+            total_pages = processed_pages if processed_pages > 0 else 1
+    return jsonify({
+        'total': total_pages,
+        'processed': processed_pages,
+        'file_id': file_id
+    })
 
 
 @bp.route("/view/<int:file_id>", methods=["GET"])
@@ -123,6 +225,19 @@ def file_view(file_id):
     pages = FilePage.query.filter_by(file_id=uploaded_file.id).order_by(FilePage.page_number).all()
     total_pages = len(pages)
     page = int(request.args.get('page', 1))
+    if total_pages == 0:
+        # No pages processed yet
+        return render_template(
+            "FileView.html",
+            file_id=uploaded_file.id,
+            name=uploaded_file.name,
+            description=uploaded_file.description or "No description available.",
+            image=None,
+            transcription=None,
+            page=1,
+            total_pages=0,
+            processing=True
+        )
     if page < 1 or page > total_pages:
         page = 1
 
@@ -139,6 +254,7 @@ def file_view(file_id):
         transcription=transcription,
         page=page,
         total_pages=total_pages,
+        processing=False
     )
 
 @bp.route("/search", methods=["GET"])
