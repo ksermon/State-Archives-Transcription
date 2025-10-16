@@ -1,227 +1,350 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles/fileview.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/fileview.css') }}" />
 {% endblock extra_css%}
 
 {% block content %}
-  <div class="main-box">
-    <div class="page-header">
-      <div>
-        <h1 class="file-title">File: {{ name }}</h1>
-        <p class="description">{{ description }}</p>
-      </div>
-      <div class="header-actions">
-        <a class="btn" href="{{ url_for('main.download_transcription', file_id=file_id) }}">Download Text</a>
-      </div>
+<div class="main-box">
+  <div class="page-header">
+    <div>
+      <h1 class="file-title">File: {{ name }}</h1>
+      <p class="description">{{ description }}</p>
     </div>
-
-    <div class="viewer-editor">
-      <div class="pdf-viewer">
-<div class="pdf-stage-wrapper">
-  {% if image_dimensions %}
-    {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
-  {% else %}
-    {% set aspect = None %}
-  {% endif %}
-
-  <div class="pdf-overlay">
-    <div class="overlay-group zoom-controls">
-      <button type="button" class="icon-btn" id="zoom-out" aria-label="Zoom out">&#8722;</button>
-      <button type="button" class="icon-btn" id="zoom-in" aria-label="Zoom in">&#43;</button>
-      <button type="button" class="icon-btn" id="reset-view" aria-label="Fit page">&#9974;</button>
-    </div>
-    <div class="overlay-group page-controls">
-      {% if page > 1 %}
-        <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" aria-label="Previous page">&laquo;</a>
-      {% else %}
-        <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
-      {% endif %}
-      <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
-      {% if page < total_pages %}
-        <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
-      {% else %}
-        <span class="icon-btn disabled" aria-hidden="true">&raquo;</span>
-      {% endif %}
+    <div class="header-actions">
+      <a class="btn" href="{{ url_for('main.download_transcription', file_id=file_id) }}">Download Text</a>
     </div>
   </div>
 
-  <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
-    <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
-    <div id="highlight-overlay" class="highlight-overlay"></div>
-  </div>
-</div>
-      </div>
+  <div class="viewer-editor">
+    <div class="pdf-viewer">
+      <div class="pdf-stage-wrapper">
+        {% if image_dimensions %}
+          {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
+        {% else %}
+          {% set aspect = None %}
+        {% endif %}
 
-      <div class="transcription-panel">
-        <div class="panel-header">
-          <h3>Transcription</h3>
-          <button type="button" id="save-transcription">Save Changes</button>
-        </div>
-        <textarea id="transcription-editor" spellcheck="false">{{ transcription }}</textarea>
-        <div class="transcription-helper">
-          <h4>Click a line to highlight it on the page:</h4>
-          <div id="transcription-lines" class="transcription-lines">
-            {% for line in transcription_lines %}
-              <div class="transcription-line" data-line-index="{{ loop.index0 }}">
-                {% if line.strip() %}
-                  {% for word in line.split(' ') %}
-                    {% if word %}
-                      <span class="word">{{ word }}</span>
-                    {% else %}
-                      <span class="word space">&nbsp;</span>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="word empty">(blank line)</span>
-                {% endif %}
-              </div>
-            {% endfor %}
+        <div class="pdf-overlay">
+          <div class="overlay-group zoom-controls">
+            <button type="button" class="icon-btn" id="zoom-out" aria-label="Zoom out">&#8722;</button>
+            <button type="button" class="icon-btn" id="zoom-in" aria-label="Zoom in">&#43;</button>
+            <button type="button" class="icon-btn" id="reset-view" aria-label="Fit page">&#9974;</button>
+          </div>
+          <div class="overlay-group page-controls">
+            {% if page > 1 %}
+              <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" aria-label="Previous page">&laquo;</a>
+            {% else %}
+              <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
+            {% endif %}
+            <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
+            {% if page < total_pages %}
+              <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
+            {% else %}
+              <span class="icon-btn disabled" aria-hidden="true">&raquo;</span>
+            {% endif %}
           </div>
         </div>
+
+        <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
+          <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
+          <div id="highlight-overlay" class="highlight-overlay"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="transcription-panel">
+      <div class="panel-header">
+        <h3>Transcription</h3>
+        <button type="button" id="save-transcription">Save Changes</button>
+      </div>
+      <textarea id="transcription-editor" spellcheck="false">{{ transcription }}</textarea>
+      <div class="transcription-helper">
+        <h4>Click a line to highlight it on the page:</h4>
+        <div id="transcription-lines" class="transcription-lines">
+          {% for line in transcription_lines %}
+            <div class="transcription-line" data-line-index="{{ loop.index0 }}">
+              {% if line.strip() %}
+                {% for word in line.split(' ') %}
+                  {% if word %}
+                    <span class="word">{{ word }}</span>
+                  {% else %}
+                    <span class="word space">&nbsp;</span>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <span class="word empty">(blank line)</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" crossorigin="anonymous"></script>
-  <script>
-    const lineBoxes = {{ line_boxes | tojson }};
-    const fileId = {{ file_id }};
-    const pageNumber = {{ page }};
+<script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" crossorigin="anonymous"></script>
+<script>
+  // ----- Server-injected data -----
+  const fileId = {{ file_id }};
+  const pageNumber = {{ page }};
+  const rawLineBoxes = {{ line_boxes | tojson }};
 
-    const pdfStage = document.getElementById('pdf-stage');
-    const highlightOverlay = document.getElementById('highlight-overlay');
-    const transcriptionEditor = document.getElementById('transcription-editor');
-    const saveButton = document.getElementById('save-transcription');
-    const transcriptionLinesContainer = document.getElementById('transcription-lines');
+  // ----- Elements -----
+  const pdfStage = document.getElementById('pdf-stage');
+  const highlightOverlay = document.getElementById('highlight-overlay');
+  const transcriptionEditor = document.getElementById('transcription-editor');
+  const saveButton = document.getElementById('save-transcription');
+  const transcriptionLinesContainer = document.getElementById('transcription-lines');
 
-    const panzoomInstance = Panzoom(pdfStage, {
-      contain: 'outside',
-      maxScale: 4,
-      minScale: 0.5,
-      cursor: 'grab'
-    });
+  // ----- Pan & Zoom -----
+  const panzoomInstance = Panzoom(pdfStage, {
+    contain: 'outside',
+    maxScale: 4,
+    minScale: 0.5,
+    cursor: 'grab'
+  });
+  pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
 
-    pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
+  // ----- State -----
+  const lines = transcriptionEditor.value.length ? transcriptionEditor.value.split('\n') : [''];
+  const lineBoxes = Array.isArray(rawLineBoxes) ? rawLineBoxes.slice(0, lines.length) : [];
+  while (lineBoxes.length < lines.length) lineBoxes.push(null);
 
-    document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
-    document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
-    document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
+  const overlayRects = [];
+  let activeLineIndex = null;
+  let activeLineEl = null;
+  let activeEditor = null;
 
-    function clearHighlight() {
-      highlightOverlay.innerHTML = '';
-      transcriptionLinesContainer.querySelectorAll('.transcription-line').forEach((line) => {
-        line.classList.remove('active');
-      });
-    }
+  // no-op in this template (avoid ReferenceError)
+  function updateHiddenTranscription() {}
 
-    function renderHighlight(box) {
-      highlightOverlay.innerHTML = '';
-      if (!box) {
-        return;
-      }
+  // ----- Helpers -----
+
+  // Build all overlay boxes once (kept; we toggle .active instead of wiping)
+  function buildOverlayFromAllBoxes() {
+    highlightOverlay.innerHTML = '';
+    overlayRects.length = 0;
+    for (let i = 0; i < lineBoxes.length; i++) {
+      const box = lineBoxes[i];
+      if (!box) { overlayRects[i] = null; continue; }
       const rect = document.createElement('div');
-      rect.className = 'highlight-rect';
-      rect.style.left = `${box.x * 100}%`;
-      rect.style.top = `${box.y * 100}%`;
-      rect.style.width = `${box.width * 100}%`;
-      rect.style.height = `${box.height * 100}%`;
+      rect.className = 'line-region';
+      rect.dataset.lineIndex = String(i);
+      rect.style.left = (box.x * 100) + '%';
+      rect.style.top = (box.y * 100) + '%';
+      rect.style.width = (box.width * 100) + '%';
+      rect.style.height = (box.height * 100) + '%';
       highlightOverlay.appendChild(rect);
+      overlayRects[i] = rect;
+    }
+  }
+
+  // Scroll ONLY the transcription list to bring an item into view
+  function scrollLineIntoPanel(index, {behavior = 'smooth'} = {}) {
+    const panel = transcriptionLinesContainer;
+    const item  = panel?.querySelector(`.transcription-line[data-line-index="${index}"]`);
+    if (!panel || !item) return;
+    const panelRect = panel.getBoundingClientRect();
+    const itemRect  = item.getBoundingClientRect();
+    const offset    = (itemRect.top - panelRect.top) - (panel.clientHeight / 2 - itemRect.height / 2);
+    panel.scrollTo({ top: panel.scrollTop + offset, behavior });
+  }
+
+  // Zoom and center the PDF view on a normalized box
+  function zoomToBox(box) {
+    if (!box || !window.panzoomInstance) return;
+
+    const opts = panzoomInstance.getOptions ? panzoomInstance.getOptions() : { minScale: 0.5, maxScale: 4 };
+    const desiredScale = Math.min(opts.maxScale || 4, Math.max(opts.minScale || 0.5, 1 / Math.max(box.width, 0.001)));
+
+    panzoomInstance.zoom(desiredScale);
+
+    const wrapper    = pdfStage.parentElement; // .pdf-stage-wrapper
+    const stageRect  = pdfStage.getBoundingClientRect();
+    const wrapRect   = wrapper.getBoundingClientRect();
+
+    const boxCenterX = stageRect.left + (box.x + box.width  / 2) * stageRect.width;
+    const boxCenterY = stageRect.top  + (box.y + box.height / 2) * stageRect.height;
+
+    const deltaX = wrapRect.left + wrapRect.width  / 2 - boxCenterX;
+    const deltaY = wrapRect.top  + wrapRect.height / 2 - boxCenterY;
+
+    const pan = panzoomInstance.getPan ? panzoomInstance.getPan() : {x:0, y:0};
+    panzoomInstance.pan(pan.x + deltaX, pan.y + deltaY);
+  }
+
+  // Toggle active states for list item and overlay rect, plus center/zoom and list scroll
+  function highlightLine(index) {
+    if (index == null || Number.isNaN(index)) return;
+
+    // If you support inline editing, commit/close editor here
+    if (activeEditor && activeEditor.index !== index) {
+      closeEditor(activeEditor, { commit: true });
     }
 
-    function ensureLineBoxesLength(count) {
-      if (!Array.isArray(lineBoxes)) {
-        return;
-      }
-      if (lineBoxes.length < count) {
-        const diff = count - lineBoxes.length;
-        for (let i = 0; i < diff; i += 1) {
-          lineBoxes.push(null);
-        }
+    if (activeLineEl) activeLineEl.classList.remove('active');
+    overlayRects.forEach((r) => { if (r) r.classList.remove('active'); });
+
+    const nextLine = transcriptionLinesContainer.querySelector(`[data-line-index="${index}"]`);
+    if (!nextLine) { activeLineEl = null; activeLineIndex = null; return; }
+    nextLine.classList.add('active');
+
+    const rect = overlayRects[index];
+    if (rect) rect.classList.add('active');
+
+    // Scroll only the list panel
+    scrollLineIntoPanel(index, {behavior:'smooth'});
+
+    // Zoom & center the PDF to the selected box
+    const box = lineBoxes[index];
+    zoomToBox(box);
+
+    activeLineEl = nextLine;
+    activeLineIndex = index;
+  }
+
+  function clearActiveLine() {
+    if (activeLineEl) activeLineEl.classList.remove('active');
+    overlayRects.forEach((r) => r && r.classList.remove('active'));
+    activeLineEl = null;
+    activeLineIndex = null;
+  }
+
+  // ----- Events -----
+
+  // Text list click → highlight line/box (no page scroll)
+  transcriptionLinesContainer.addEventListener('click', (event) => {
+    const lineEl = event.target.closest('.transcription-line');
+    if (!lineEl) {
+      clearActiveLine();
+      return;
+    }
+    const index = parseInt(lineEl.dataset.lineIndex, 10);
+    highlightLine(index);
+
+    if (event.target.closest('.line-edit-btn')) {
+      event.preventDefault();
+      // openEditor(lineEl, index); // (enable if/when inline editing is used)
+    }
+  });
+
+  // Box clicks with drag threshold: dragging pans, tiny movement counts as click
+  let overlayPointer = {down:false, x:0, y:0, t:0};
+  const CLICK_MOVE_TOLERANCE = 5;    // px
+  const CLICK_TIME_TOLERANCE = 400;  // ms
+
+  highlightOverlay.addEventListener('pointerdown', (e) => {
+    const targetRect = e.target.closest('.line-region');
+    overlayPointer = {down: !!targetRect, x: e.clientX, y: e.clientY, t: Date.now()};
+  });
+
+  highlightOverlay.addEventListener('pointerup', (e) => {
+    const rect = e.target.closest('.line-region');
+    if (!rect || !overlayPointer.down) return;
+    const dx = Math.abs(e.clientX - overlayPointer.x);
+    const dy = Math.abs(e.clientY - overlayPointer.y);
+    const dt = Date.now() - overlayPointer.t;
+    overlayPointer.down = false;
+
+    if (dx <= CLICK_MOVE_TOLERANCE && dy <= CLICK_MOVE_TOLERANCE && dt <= CLICK_TIME_TOLERANCE) {
+      const idx = parseInt(rect.dataset.lineIndex, 10);
+      if (!Number.isNaN(idx)) {
+        highlightLine(idx);
       }
     }
+  });
 
-    function renderLinesFromText(text) {
-      const lines = text.split('\n');
-      ensureLineBoxesLength(lines.length);
-      transcriptionLinesContainer.innerHTML = '';
-      lines.forEach((line, index) => {
-        const lineEl = document.createElement('div');
-        lineEl.className = 'transcription-line';
-        lineEl.dataset.lineIndex = index;
-
-        if (line.trim().length === 0) {
-          const empty = document.createElement('span');
-          empty.className = 'word empty';
-          empty.textContent = '(blank line)';
-          lineEl.appendChild(empty);
-        } else {
-          line.split(/(\s+)/).forEach((token) => {
-            if (!token) {
-              return;
-            }
-            const word = document.createElement('span');
-            if (/\s+/.test(token)) {
-              word.className = 'word space';
-              word.innerHTML = '&nbsp;';
-            } else {
-              word.className = 'word';
-              word.textContent = token;
-            }
-            lineEl.appendChild(word);
-          });
-        }
-
-        transcriptionLinesContainer.appendChild(lineEl);
-      });
+  // Deselect when clicking outside both list and overlay
+  document.addEventListener('click', (e) => {
+    const inList = !!e.target.closest('.transcription-lines');
+    const inOverlay = !!e.target.closest('#highlight-overlay');
+    if (!inList && !inOverlay) {
+      clearActiveLine();
     }
+  });
 
-    function handleLineSelection(event) {
-      const lineEl = event.target.closest('.transcription-line');
-      if (!lineEl) {
-        return;
-      }
-      const lineIndex = parseInt(lineEl.dataset.lineIndex, 10);
-      clearHighlight();
-      lineEl.classList.add('active');
-      renderHighlight(lineBoxes[lineIndex]);
-    }
-
-    transcriptionLinesContainer.addEventListener('click', handleLineSelection);
-
-    transcriptionEditor.addEventListener('input', () => {
-      clearHighlight();
-      renderLinesFromText(transcriptionEditor.value);
-    });
-
-    saveButton.addEventListener('click', async () => {
-      saveButton.disabled = true;
-      saveButton.textContent = 'Saving...';
-      clearHighlight();
-      try {
-        const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ transcription: transcriptionEditor.value })
-        });
-        if (!response.ok) {
-          throw new Error('Failed to save transcription');
-        }
-        saveButton.textContent = 'Saved!';
-      } catch (error) {
-        console.error(error);
-        saveButton.textContent = 'Error - Retry';
-      } finally {
-        setTimeout(() => {
-          saveButton.disabled = false;
-          saveButton.textContent = 'Save Changes';
-        }, 1500);
-      }
-    });
-
-    // Initial render ensures the helper lines reflect the stored text.
+  // Live typing: rebuild the list (boxes remain; indices still match via server alignment)
+  transcriptionEditor.addEventListener('input', () => {
+    clearActiveLine();
     renderLinesFromText(transcriptionEditor.value);
-  </script>
+  });
+
+  // Zoom buttons
+  document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
+  document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
+  document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
+
+  // ----- Rendering -----
+
+  function ensureLineBoxesLength(count) {
+    if (!Array.isArray(lineBoxes)) return;
+    if (lineBoxes.length < count) {
+      const diff = count - lineBoxes.length;
+      for (let i = 0; i < diff; i += 1) lineBoxes.push(null);
+    }
+  }
+
+  function renderLinesFromText(text) {
+    const arr = text.split('\n');
+    ensureLineBoxesLength(arr.length);
+    transcriptionLinesContainer.innerHTML = '';
+    arr.forEach((line, index) => {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'transcription-line';
+      lineEl.dataset.lineIndex = index;
+
+      if (line.trim().length === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'word empty';
+        empty.textContent = '(blank line)';
+        lineEl.appendChild(empty);
+      } else {
+        line.split(/(\s+)/).forEach((token) => {
+          if (!token) return;
+          const word = document.createElement('span');
+          if (/\s+/.test(token)) {
+            word.className = 'word space';
+            word.innerHTML = '&nbsp;';
+          } else {
+            word.className = 'word';
+            word.textContent = token;
+          }
+          lineEl.appendChild(word);
+        });
+      }
+
+      transcriptionLinesContainer.appendChild(lineEl);
+    });
+  }
+
+  // Initial render
+  renderLinesFromText(transcriptionEditor.value);
+  buildOverlayFromAllBoxes();
+  updateHiddenTranscription();
+
+  // Save transcription (unchanged)
+  saveButton.addEventListener('click', async () => {
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    clearActiveLine();
+    try {
+      const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcription: transcriptionEditor.value })
+      });
+      if (!response.ok) throw new Error('Failed to save transcription');
+      saveButton.textContent = 'Saved!';
+    } catch (error) {
+      console.error(error);
+      saveButton.textContent = 'Error - Retry';
+    } finally {
+      setTimeout(() => {
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save Changes';
+      }, 1500);
+    }
+  });
+</script>
 {% endblock %}

@@ -22,13 +22,17 @@ from app.utils.text_regions import extract_line_boxes, get_image_dimensions
 
 
 def _align_boxes_to_lines(boxes, line_count):
+    """
+    Returns exactly 'line_count' boxes in reading order (top-to-bottom),
+    padding with None when needed and truncating when there are too many.
+    """
     if line_count <= 0:
         return []
     boxes = boxes or []
-    boxes = boxes[:line_count]
-    if len(boxes) < line_count:
-        boxes.extend([None] * (line_count - len(boxes)))
-    return boxes
+    boxes = sorted(boxes, key=lambda b: (b.get("y", 0), b.get("x", 0)))
+    if len(boxes) >= line_count:
+        return boxes[:line_count]
+    return boxes + [None] * (line_count - len(boxes))
 
 load_dotenv()
 
@@ -152,8 +156,18 @@ def file_view(file_id):
     transcription = current_page.transcription or "No transcription available."
 
     transcription_lines = transcription.splitlines() or [transcription]
-    line_boxes = extract_line_boxes(current_page.image)
-    line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
+
+    # Detect boxes
+    detected_boxes = extract_line_boxes(current_page.image)
+
+    # If detection is weak (too few boxes), synthesize evenly spaced ones
+    if not detected_boxes or len(detected_boxes) < max(3, len(transcription_lines) // 2):
+        from app.utils.text_regions import synthesize_line_boxes
+        detected_boxes = synthesize_line_boxes(len(transcription_lines))
+
+    # Align to exactly the number of transcription lines
+    line_boxes = _align_boxes_to_lines(detected_boxes, len(transcription_lines))
+
     dimensions = get_image_dimensions(current_page.image)
 
     return render_template(
