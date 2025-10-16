@@ -170,3 +170,76 @@ button:hover {
     overflow-y: auto;
     flex: 1;
 }
+/* Floating overlay that sits above the page */
+.pdf-overlay {
+  position: absolute;
+  top: 0.75rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  z-index: 5;
+  pointer-events: none; /* overlay doesn't block panning */
+}
+
+.overlay-group {
+  display: flex;
+  gap: 0.5rem;
+  pointer-events: auto; /* re-enable for buttons */
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Round icon buttons */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #f7f7f7;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.icon-btn.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.page-indicator {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f0f0f0;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+/* Optional: tighter overlay on small screens */
+@media (max-width: 1200px) {
+  .pdf-overlay {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .overlay-group { width: fit-content; }
+}
