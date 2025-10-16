@@ -107,7 +107,7 @@
   pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
 
   // ----- State -----
-  const lines = transcriptionEditor.value.length ? transcriptionEditor.value.split('\n') : [''];
+  const lines = {{ transcription_lines | tojson }};
   const lineBoxes = Array.isArray(rawLineBoxes) ? rawLineBoxes.slice(0, lines.length) : [];
   while (lineBoxes.length < lines.length) lineBoxes.push(null);
 
