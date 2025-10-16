@@ -257,7 +257,7 @@
   flex-wrap: nowrap;
   justify-content: space-between;
   padding: 0 0.75rem;
-  z-index: 5;
+  z-index: 10;
   pointer-events: none; /* overlay doesn't block panning */
 }
 
