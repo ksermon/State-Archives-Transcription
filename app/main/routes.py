@@ -9,6 +9,25 @@ from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64
 from app.models import UploadedFile, FilePage
+from dotenv import load_dotenv
+from app.utils.gemini_transcriber import transcribe_images_with_gemini
+from app.utils.text_regions import extract_line_boxes, get_image_dimensions
+
+
+def _align_boxes_to_lines(boxes, line_count):
+    """
+    Returns exactly 'line_count' boxes in reading order (top-to-bottom),
+    padding with None when needed and truncating when there are too many.
+    """
+    if line_count <= 0:
+        return []
+    boxes = boxes or []
+    boxes = sorted(boxes, key=lambda b: (b.get("y", 0), b.get("x", 0)))
+    if len(boxes) >= line_count:
+        return boxes[:line_count]
+    return boxes + [None] * (line_count - len(boxes))
+
+load_dotenv()
 import uuid
 
 # Dictionary to store upload progress (in production, use Redis or similar)
@@ -186,6 +205,21 @@ def file_view(file_id):
     current_page = pages[page - 1]
     image_base64 = base64.b64encode(current_page.image).decode("utf-8")
     transcription = current_page.transcription or "No transcription available."
+
+    transcription_lines = transcription.splitlines() or [transcription]
+
+    # Detect boxes
+    detected_boxes = extract_line_boxes(current_page.image)
+
+    # If detection is weak (too few boxes), synthesize evenly spaced ones
+    if not detected_boxes or len(detected_boxes) < max(3, len(transcription_lines) // 2):
+        from app.utils.text_regions import synthesize_line_boxes
+        detected_boxes = synthesize_line_boxes(len(transcription_lines))
+
+    # Align to exactly the number of transcription lines
+    line_boxes = _align_boxes_to_lines(detected_boxes, len(transcription_lines))
+
+    dimensions = get_image_dimensions(current_page.image)
 
     return render_template(
         "FileView.html",
