@@ -3,6 +3,7 @@ name: Build Windows Installer
 on:
   push:
     tags: ['v*']   # create a release when you push a tag like v1.0.0
+    branches: []
 
 jobs:
   build-windows:
