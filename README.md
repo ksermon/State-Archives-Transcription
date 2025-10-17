@@ -8,16 +8,19 @@ _An app for OCR-based transcription of scanned, handwritten archives._
 ---
 
 ## Table of Contents
-1. [Features](#features)  
-2. [Prerequisites](#prerequisites)  
-3. [Getting Started](#getting-started)  
-   - [Clone](#clone)  
-   - [Docker](#docker)  
-   - [Quickstart](#quickstart)  
-4. [Usage](#usage)  
-5. [Project Structure](#project-structure)
-6. [Contributing](#contributing)  
-7. [License](#license) 
+- [State-Archives-Transcription](#state-archives-transcription)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+    - [Clone](#clone)
+    - [Add API Key](#add-api-key)
+    - [Docker](#docker)
+    - [Quick Start (Subsequent Runs)](#quick-start-subsequent-runs)
+  - [Usage](#usage)
+  - [Project Structure](#project-structure)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ---
 
