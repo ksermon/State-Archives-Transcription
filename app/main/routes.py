@@ -8,6 +8,8 @@ from flask import (
     jsonify,
     Response,
 )
+import os
+from flask import render_template, request, redirect, flash, url_for, abort, session, jsonify
 from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
@@ -19,7 +21,10 @@ from app.models import UploadedFile, FilePage
 from dotenv import load_dotenv
 from app.utils.gemini_transcriber import transcribe_images_with_gemini
 from app.utils.text_regions import extract_line_boxes, get_image_dimensions
+import uuid
 
+# Dictionary to store upload progress (in production, use Redis or similar)
+upload_progress = {}
 
 def _align_boxes_to_lines(boxes, line_count):
     if line_count <= 0:
@@ -139,8 +144,18 @@ def file_upload():
         flash(f'File "{file_name}" uploaded and transcribed using {transcription_method.upper()}!')
         return redirect(url_for("main.file_view", file_id=db_file.id))
     else:
-        flash("Invalid file type.")
-        return redirect(url_for("main.file_list"))
+        # Fallback: parse PDF
+        from .utils import pdf_to_images_base64
+        try:
+            images = pdf_to_images_base64(uploaded_file.content)
+            total_pages = len(images)
+        except:
+            total_pages = processed_pages if processed_pages > 0 else 1
+    return jsonify({
+        'total': total_pages,
+        'processed': processed_pages,
+        'file_id': file_id
+    })
 
 
 @bp.route("/view/<int:file_id>", methods=["GET"])
@@ -153,6 +168,19 @@ def file_view(file_id):
     pages = FilePage.query.filter_by(file_id=uploaded_file.id).order_by(FilePage.page_number).all()
     total_pages = len(pages)
     page = int(request.args.get('page', 1))
+    if total_pages == 0:
+        # No pages processed yet
+        return render_template(
+            "FileView.html",
+            file_id=uploaded_file.id,
+            name=uploaded_file.name,
+            description=uploaded_file.description or "No description available.",
+            image=None,
+            transcription=None,
+            page=1,
+            total_pages=0,
+            processing=True
+        )
     if page < 1 or page > total_pages:
         page = 1
 
@@ -176,6 +204,7 @@ def file_view(file_id):
         image_dimensions=dimensions,
         page=page,
         total_pages=total_pages,
+        processing=False
     )
 
 
