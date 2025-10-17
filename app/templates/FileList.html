@@ -12,9 +12,11 @@
     </div>
 
     <div class="container">
-        <div class="filter-bar">
-            <p>TODO: Filter Components</p>
+        {% if not files %}
+        <div class="no-files-message">
+            <p>No transcription available.</p>
         </div>
+    {% else %}
 
         <div class="card-grid">
             
@@ -30,11 +32,30 @@
         </div>
 
         <div class="pagination">
-            <button disabled>&laquo; Prev</button>
-            <button class="active">1</button>
-            <button>2</button>
-            <button>3</button>
-            <button>Next &raquo;</button>
+            {% if pagination.has_prev %}
+                <button onclick="window.location.href='{{ url_for('main.file_list', page=pagination.prev_num) }}'">&laquo; Prev</button>
+            {% else %}
+                <button disabled>&laquo; Prev</button>
+            {% endif %}
+        
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                        <button class="active" disabled>{{ page_num }}</button>
+                    {% else %}
+                        <button onclick="window.location.href='{{ url_for('main.file_list', page=page_num) }}'">{{ page_num }}</button>
+                    {% endif %}
+                {% else %}
+                    <button disabled>…</button>
+                {% endif %}
+            {% endfor %}
+        
+            {% if pagination.has_next %}
+                <button onclick="window.location.href='{{ url_for('main.file_list', page=pagination.next_num) }}'">Next &raquo;</button>
+            {% else %}
+                <button disabled>Next &raquo;</button>
+            {% endif %}
         </div>
-    </div>
+    {% endif %}
+</div>
 {% endblock content %}

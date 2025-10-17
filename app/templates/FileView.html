@@ -6,11 +6,57 @@
 
 {% block content %}
   <div class="main-box">
-    <h1 class="file-title">File: {{ name }}</h1>
-    <div class="description-block">
-      <p class="description">Description: {{ description }}</p>
+    <div class="page-header">
+      <div>
+        <h1 class="file-title">File: {{ name }}</h1>
+        <p class="description">{{ description }}</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn" href="{{ url_for('main.download_transcription', file_id=file_id) }}">Download Text</a>
+      </div>
     </div>
 
+    <div class="viewer-editor">
+      <div class="pdf-viewer">
+        <div class="pdf-stage-wrapper">
+          {% if image_dimensions %}
+            {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
+          {% else %}
+            {% set aspect = None %}
+          {% endif %}
+          <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
+            <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
+            <!-- <div id="highlight-overlay" class="highlight-overlay"></div> -->
+          </div>
+        </div>
+        <div class="viewer-controls">
+          <div class="zoom-controls">
+            <button type="button" id="zoom-in">Zoom In</button>
+            <button type="button" id="zoom-out">Zoom Out</button>
+            <button type="button" id="reset-view">Reset View</button>
+          </div>
+          <div class="page-controls">
+            {% if page > 1 %}
+              <a class="btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}">&laquo; Prev</a>
+            {% else %}
+              <span class="btn disabled">&laquo; Prev</span>
+            {% endif %}
+            <span class="page-indicator">Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+              <a class="btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}">Next &raquo;</a>
+            {% else %}
+              <span class="btn disabled">Next &raquo;</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="transcription-panel">
+        <div class="panel-header">
+          <h3>Transcription</h3>
+          <button type="button" id="save-transcription">Save Changes</button>
+        </div>
+        <textarea id="transcription-editor" spellcheck="false">{{ transcription }}</textarea>
     <!-- Adds message when document is being processed -->
     {% if processing %}
       <div class="processing-message" style="color: #FF8888; background: #2B1A1A; padding: 1.5em; border-radius: 8px; text-align: center; font-size: 1.2em; margin: 2em 0;">
@@ -53,6 +99,118 @@
     {% endif %}
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js" integrity="sha256-9PI4Hcqdhk6UDuIArOUvzRL9S/uJRmDpkA2o4gIigDs=" crossorigin="anonymous"></script>
+  <script>
+      const lineBoxes = {{ line_boxes | tojson }};
+      const fileId = {{ file_id }};
+      const pageNumber = {{ page }};
+
+      const pdfStage = document.getElementById('pdf-stage');
+      const highlightOverlay = document.getElementById('highlight-overlay');
+      const transcriptionEditor = document.getElementById('transcription-editor');
+      const saveButton = document.getElementById('save-transcription');
+      const transcriptionLinesContainer = document.getElementById('transcription-lines');
+
+      const panzoomInstance = Panzoom(pdfStage, {
+        contain: 'outside',
+        maxScale: 4,
+        minScale: 0.5,
+        cursor: 'grab'
+      });
+
+      pdfStage.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
+
+      document.getElementById('zoom-in').addEventListener('click', () => panzoomInstance.zoomIn());
+      document.getElementById('zoom-out').addEventListener('click', () => panzoomInstance.zoomOut());
+      document.getElementById('reset-view').addEventListener('click', () => panzoomInstance.reset());
+
+      // Highlighting functions removed
+
+      function ensureLineBoxesLength(count) {
+        if (!Array.isArray(lineBoxes)) {
+          return;
+        }
+        if (lineBoxes.length < count) {
+          const diff = count - lineBoxes.length;
+          for (let i = 0; i < diff; i += 1) {
+            lineBoxes.push(null);
+          }
+        }
+      }
+
+      function renderLinesFromText(text) {
+        const lines = text.split('\n');
+        ensureLineBoxesLength(lines.length);
+        transcriptionLinesContainer.innerHTML = '';
+        lines.forEach((line, index) => {
+          const lineEl = document.createElement('div');
+          lineEl.className = 'transcription-line';
+          lineEl.dataset.lineIndex = index;
+
+          if (line.trim().length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'word empty';
+            empty.textContent = '(blank line)';
+            lineEl.appendChild(empty);
+          } else {
+            line.split(/(\s+)/).forEach((token) => {
+              if (!token) {
+                return;
+              }
+              const word = document.createElement('span');
+              if (/\s+/.test(token)) {
+                word.className = 'word space';
+                word.innerHTML = '&nbsp;';
+              } else {
+                word.className = 'word';
+                word.textContent = token;
+              }
+              // const wordIndex = line.split(/\s+/).indexOf(token); 
+              lineEl.appendChild(word);
+            });
+          }
+
+          transcriptionLinesContainer.appendChild(lineEl);
+        });
+      }
+
+      // Highlighting and line selection handlers removed
+
+      transcriptionEditor.addEventListener('input', () => {
+        renderLinesFromText(transcriptionEditor.value);
+      });
+
+      saveButton.addEventListener('click', async () => {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+        try {
+          const response = await fetch(`/api/files/${fileId}/pages/${pageNumber}/transcription`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ transcription: transcriptionEditor.value })
+          });
+          if (!response.ok) {
+            throw new Error('Failed to save transcription');
+          }
+          saveButton.textContent = 'Saved!';
+        } catch (error) {
+          console.error(error);
+          saveButton.textContent = 'Error - Retry';
+        } finally {
+          setTimeout(() => {
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Changes';
+          }, 1500);
+        }
+      });
+
+      // Initial render ensures the helper lines reflect the stored text.
+      renderLinesFromText(transcriptionEditor.value);
+
+  </script>
+{% endblock %}
   <!-- Progress bar document processing -->
   {% if processing %}
   <script>

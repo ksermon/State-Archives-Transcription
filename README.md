@@ -48,7 +48,7 @@ Go to https://aistudio.google.com/apikey and create a Google AI API key.
 Create a file called `.env` in the root directory and add your api key:
 
 ```
-GOOGLE_AI_API_KEY=somenumbersandletters
+GOOGLE_AI_API_KEY=somenumbersandletters 
 ```
 
 ### Docker

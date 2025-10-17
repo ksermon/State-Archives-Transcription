@@ -13,12 +13,13 @@ try:
 except Exception as e:
     print(f"Error configuring Gemini API: {e}")
 
-def transcribe_images_with_gemini(image_batch_base64: list[str]) -> list[str]:
+def transcribe_images_with_gemini(image_batch_base64,mark_uncertainty: bool = True) -> list[str]:
     """
     Transcribes a batch of images using the Gemini 1.5 Pro model.
 
     Args:
         image_batch_base64: A list of base64-encoded image strings.
+        mark_uncertainty: Whether to apply uncertainty marking rules.
 
     Returns:
         A list of transcriptions, one for each image in the batch.
@@ -30,12 +31,31 @@ def transcribe_images_with_gemini(image_batch_base64: list[str]) -> list[str]:
     
     pil_images = [Image.open(io.BytesIO(base64.b64decode(b64_str))) for b64_str in image_batch_base64]
 
+
+
     prompt_parts = [
         "Transcribe the text from the following images of handwritten documents.",
         "Output only the direct transcription for each page.",
         "Separate the transcription of each page with the exact delimiter '---PAGE BREAK---'.",
         "If a page is blank, output only the delimiter for that page."
     ]
+
+# rules mark uncertain characters
+    if mark_uncertainty:
+        rules_prompt = """
+## Identifying and Marking Uncertain Items:
+* For the following situations, **bold** marking must be used:
+    - Characters with unclear outlines due to messy handwriting
+    - Characters with broken strokes or interference from stains/smudges
+    - Instances where similar characters are difficult to distinguish 
+    - Recognition results with a confidence score below 85% (self-estimate)
+* For sequences of 3 or more consecutive low-confidence characters, **bold the entire sequence**.
+* For handwritten text, apply a more lenient marking strategy: **bold** any character with blurred or ambiguous strokes.
+"""
+        prompt_parts.insert(2, "Apply the following uncertainty marking rules:")
+        prompt_parts.insert(3, rules_prompt)
+
+
     prompt_parts.extend(pil_images)
 
     try:
