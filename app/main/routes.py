@@ -190,33 +190,42 @@ def file_view(file_id):
         .all()
     )
     total_pages = len(pages)
-    if total_pages == 0:
-        # No pages saved; show a minimal view
-        flash("No pages found for this file.")
-        return redirect(url_for("main.file_list"))
-
-    # Page parameter (1-based)
-    try:
-        page = int(request.args.get("page", 1))
-    except (TypeError, ValueError):
-        page = 1
+    page = int(request.args.get("page", 1))
     if page < 1 or page > total_pages:
         page = 1
 
     current_page = pages[page - 1]
     image_base64 = base64.b64encode(current_page.image).decode("utf-8")
-    transcription = current_page.transcription or "No transcription available."
+    transcription = current_page.transcription or ""
 
-    # 1) Normalize server-side line array (source of truth for UI and boxes)
-    transcription_lines = _normalize_transcription_lines(transcription)
+    # 1) Build the authoritative line list (preserve truly blank rows)
+    def _normalize_lines(text: str) -> list[str]:
+        if not text:
+            return [""]
+        t = text.replace("\r\n", "\n").replace("\r", "\n")
+        t = t.replace("\t", " ")
+        return t.split("\n")
 
-    # 2) Generate boxes aligned to the line count (auto column/spread aware)
-    detected_boxes = extract_line_boxes_aligned(current_page.image, len(transcription_lines))
+    transcription_lines = _normalize_lines(transcription)
 
-    # 3) Force exact length (safety)
-    line_boxes = _align_boxes_to_lines(detected_boxes, len(transcription_lines))
+    # 2) Identify blank vs non-blank rows
+    is_blank = [not (ln.strip()) for ln in transcription_lines]
+    nonblank_indices = [i for i, blank in enumerate(is_blank) if not blank]
+    nonblank_count = len(nonblank_indices)
 
-    # 4) Dimensions for aspect ratio
+    # 3) Generate boxes ONLY for non-blank lines
+    from app.utils.text_regions import extract_line_boxes_aligned, get_image_dimensions
+    if nonblank_count > 0:
+        nonblank_boxes = extract_line_boxes_aligned(current_page.image, nonblank_count)
+    else:
+        nonblank_boxes = []
+
+    # 4) Rebuild full list by inserting None for blank rows so indices align with UI
+    line_boxes = [None] * len(transcription_lines)
+    for box, idx in zip(nonblank_boxes, nonblank_indices):
+        line_boxes[idx] = box
+
+    # 5) Dimensions for aspect ratio
     dimensions = get_image_dimensions(current_page.image)
 
     return render_template(
@@ -225,14 +234,15 @@ def file_view(file_id):
         name=uploaded_file.name,
         description=uploaded_file.description or "No description available.",
         image=image_base64,
-        transcription="\n".join(transcription_lines),  # keep textarea consistent with lines shown
+        transcription=transcription,
         transcription_lines=transcription_lines,
-        line_boxes=line_boxes,
+        line_boxes=line_boxes,        # includes None for blank rows
+        is_blank=is_blank,            # tell the template which rows are blank
         image_dimensions=dimensions,
         page=page,
         total_pages=total_pages,
+        processing=False,             # keep your existing flag logic if you have it
     )
-
 
 @bp.route("/api/files/<int:file_id>/pages/<int:page>/transcription", methods=["PUT"])
 def update_transcription(file_id, page):

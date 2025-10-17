@@ -20,9 +20,9 @@
     <div class="pdf-viewer">
       <div class="pdf-stage-wrapper">
         {% if image_dimensions %}
-          {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
+        {% set aspect = (image_dimensions.height / image_dimensions.width * 100) %}
         {% else %}
-          {% set aspect = None %}
+        {% set aspect = None %}
         {% endif %}
 
         <div class="pdf-overlay">
@@ -33,20 +33,22 @@
           </div>
           <div class="overlay-group page-controls">
             {% if page > 1 %}
-              <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}" aria-label="Previous page">&laquo;</a>
+            <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page-1) }}"
+              aria-label="Previous page">&laquo;</a>
             {% else %}
-              <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
+            <span class="icon-btn disabled" aria-hidden="true">&laquo;</span>
             {% endif %}
             <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
-            {% if page < total_pages %}
-              <a class="icon-btn" href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
-            {% else %}
+            {% if page < total_pages %} <a class="icon-btn"
+              href="{{ url_for('main.file_view', file_id=file_id, page=page+1) }}" aria-label="Next page">&raquo;</a>
+              {% else %}
               <span class="icon-btn disabled" aria-hidden="true">&raquo;</span>
-            {% endif %}
+              {% endif %}
           </div>
         </div>
 
-        <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;"{% endif %}>
+        <div id="pdf-stage" class="pdf-stage" {% if aspect %}style="--pdf-aspect: {{ '%.2f'|format(aspect) }}%;" {%
+          endif %}>
           <img id="pdf-image" src="data:image/png;base64,{{ image }}" alt="Page image" />
           <div id="highlight-overlay" class="highlight-overlay"></div>
         </div>
@@ -63,19 +65,19 @@
         <h4>Click a line to highlight it on the page:</h4>
         <div id="transcription-lines" class="transcription-lines">
           {% for line in transcription_lines %}
-            <div class="transcription-line" data-line-index="{{ loop.index0 }}">
-              {% if line.strip() %}
-                {% for word in line.split(' ') %}
-                  {% if word %}
-                    <span class="word">{{ word }}</span>
-                  {% else %}
-                    <span class="word space">&nbsp;</span>
-                  {% endif %}
-                {% endfor %}
-              {% else %}
-                <span class="word empty">(blank line)</span>
-              {% endif %}
-            </div>
+          <div class="transcription-line" data-line-index="{{ loop.index0 }}">
+            {% if line.strip() %}
+            {% for word in line.split(' ') %}
+            {% if word %}
+            <span class="word">{{ word }}</span>
+            {% else %}
+            <span class="word space">&nbsp;</span>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <span class="word empty">(blank line)</span>
+            {% endif %}
+          </div>
           {% endfor %}
         </div>
       </div>
@@ -89,6 +91,7 @@
   const fileId = {{ file_id }};
   const pageNumber = {{ page }};
   const rawLineBoxes = {{ line_boxes | tojson }};
+  const isBlank = {{ is_blank | tojson }};
 
   // ----- Elements -----
   const pdfStage = document.getElementById('pdf-stage');
@@ -117,7 +120,7 @@
   let activeEditor = null;
 
   // no-op in this template (avoid ReferenceError)
-  function updateHiddenTranscription() {}
+  function updateHiddenTranscription() { }
 
   // ----- Helpers -----
 
@@ -125,9 +128,16 @@
   function buildOverlayFromAllBoxes() {
     highlightOverlay.innerHTML = '';
     overlayRects.length = 0;
+
     for (let i = 0; i < lineBoxes.length; i++) {
+      // If this is a blank line (no text), do NOT draw any box
+      if (Array.isArray(isBlank) && isBlank[i]) {
+        overlayRects[i] = null;
+        continue;
+      }
       const box = lineBoxes[i];
       if (!box) { overlayRects[i] = null; continue; }
+
       const rect = document.createElement('div');
       rect.className = 'line-region';
       rect.dataset.lineIndex = String(i);
@@ -141,13 +151,13 @@
   }
 
   // Scroll ONLY the transcription list to bring an item into view
-  function scrollLineIntoPanel(index, {behavior = 'smooth'} = {}) {
+  function scrollLineIntoPanel(index, { behavior = 'smooth' } = {}) {
     const panel = transcriptionLinesContainer;
-    const item  = panel?.querySelector(`.transcription-line[data-line-index="${index}"]`);
+    const item = panel?.querySelector(`.transcription-line[data-line-index="${index}"]`);
     if (!panel || !item) return;
     const panelRect = panel.getBoundingClientRect();
-    const itemRect  = item.getBoundingClientRect();
-    const offset    = (itemRect.top - panelRect.top) - (panel.clientHeight / 2 - itemRect.height / 2);
+    const itemRect = item.getBoundingClientRect();
+    const offset = (itemRect.top - panelRect.top) - (panel.clientHeight / 2 - itemRect.height / 2);
     panel.scrollTo({ top: panel.scrollTop + offset, behavior });
   }
 
@@ -160,17 +170,17 @@
 
     panzoomInstance.zoom(desiredScale);
 
-    const wrapper    = pdfStage.parentElement; // .pdf-stage-wrapper
-    const stageRect  = pdfStage.getBoundingClientRect();
-    const wrapRect   = wrapper.getBoundingClientRect();
+    const wrapper = pdfStage.parentElement; // .pdf-stage-wrapper
+    const stageRect = pdfStage.getBoundingClientRect();
+    const wrapRect = wrapper.getBoundingClientRect();
 
-    const boxCenterX = stageRect.left + (box.x + box.width  / 2) * stageRect.width;
-    const boxCenterY = stageRect.top  + (box.y + box.height / 2) * stageRect.height;
+    const boxCenterX = stageRect.left + (box.x + box.width / 2) * stageRect.width;
+    const boxCenterY = stageRect.top + (box.y + box.height / 2) * stageRect.height;
 
-    const deltaX = wrapRect.left + wrapRect.width  / 2 - boxCenterX;
-    const deltaY = wrapRect.top  + wrapRect.height / 2 - boxCenterY;
+    const deltaX = wrapRect.left + wrapRect.width / 2 - boxCenterX;
+    const deltaY = wrapRect.top + wrapRect.height / 2 - boxCenterY;
 
-    const pan = panzoomInstance.getPan ? panzoomInstance.getPan() : {x:0, y:0};
+    const pan = panzoomInstance.getPan ? panzoomInstance.getPan() : { x: 0, y: 0 };
     panzoomInstance.pan(pan.x + deltaX, pan.y + deltaY);
   }
 
@@ -178,7 +188,6 @@
   function highlightLine(index) {
     if (index == null || Number.isNaN(index)) return;
 
-    // If you support inline editing, commit/close editor here
     if (activeEditor && activeEditor.index !== index) {
       closeEditor(activeEditor, { commit: true });
     }
@@ -190,19 +199,26 @@
     if (!nextLine) { activeLineEl = null; activeLineIndex = null; return; }
     nextLine.classList.add('active');
 
+    // NEW: blank lines have no box — just scroll the list, do not try to draw/zoom
+    if (Array.isArray(isBlank) && isBlank[index]) {
+      scrollLineIntoPanel(index, { behavior: 'smooth' });
+      activeLineEl = nextLine;
+      activeLineIndex = index;
+      return;
+    }
+
     const rect = overlayRects[index];
     if (rect) rect.classList.add('active');
 
-    // Scroll only the list panel
-    scrollLineIntoPanel(index, {behavior:'smooth'});
+    scrollLineIntoPanel(index, { behavior: 'smooth' });
 
-    // Zoom & center the PDF to the selected box
     const box = lineBoxes[index];
     zoomToBox(box);
 
     activeLineEl = nextLine;
     activeLineIndex = index;
   }
+
 
   function clearActiveLine() {
     if (activeLineEl) activeLineEl.classList.remove('active');
@@ -230,13 +246,13 @@
   });
 
   // Box clicks with drag threshold: dragging pans, tiny movement counts as click
-  let overlayPointer = {down:false, x:0, y:0, t:0};
+  let overlayPointer = { down: false, x: 0, y: 0, t: 0 };
   const CLICK_MOVE_TOLERANCE = 5;    // px
   const CLICK_TIME_TOLERANCE = 400;  // ms
 
   highlightOverlay.addEventListener('pointerdown', (e) => {
     const targetRect = e.target.closest('.line-region');
-    overlayPointer = {down: !!targetRect, x: e.clientX, y: e.clientY, t: Date.now()};
+    overlayPointer = { down: !!targetRect, x: e.clientX, y: e.clientY, t: Date.now() };
   });
 
   highlightOverlay.addEventListener('pointerup', (e) => {
