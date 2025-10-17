@@ -5,3 +5,52 @@ app/static/uploads
 *.db
 app/models
 /venv
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+
+# PyInstaller extras
+*.manifest
+*.spec~
+*.pkg
+*.toc
+*.tmp
+*.bak
+*.log
+xref-*.html
+warn-*.txt
+
+# Installer / binaries / archives (don’t commit; upload to Releases)
+*.exe
+*.msi
+*.app
+*.dmg
+*.pkg
+*.zip
+*.7z
+
+# dotenv & local config
+.env
+.env.*
+C:/ProgramData/StateArchivesTranscription/.env
+
+# Flask instance data / local files
+instance/
+uploads/
+*.sqlite
+*.sqlite3
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

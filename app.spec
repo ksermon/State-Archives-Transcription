@@ -6,8 +6,8 @@ a = Analysis(
     binaries=[],
     datas=[
         # include your templates/static so Flask can find them in the bundle:
-        ('yourpackage/templates', 'yourpackage/templates'),
-        ('yourpackage/static', 'yourpackage/static'),
+        ('app/templates', 'app/templates'),
+        ('app/static', 'app/static'),
     ],
     hiddenimports=[
         # Add any tricky libs here (torch/transformers often need nudges)
