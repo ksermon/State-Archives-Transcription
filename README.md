@@ -8,16 +8,50 @@ _An app for OCR-based transcription of scanned, handwritten archives._
 ---
 
 ## Table of Contents
-1. [Features](#features)  
-2. [Prerequisites](#prerequisites)  
-3. [Getting Started](#getting-started)  
-   - [Clone](#clone)  
-   - [Docker](#docker)  
-   - [Quickstart](#quickstart)  
-4. [Usage](#usage)  
-5. [Project Structure](#project-structure)
-6. [Contributing](#contributing)  
-7. [License](#license) 
+- [State-Archives-Transcription](#state-archives-transcription)
+  - [Table of Contents](#table-of-contents)
+  - [Releases](#releases)
+    - [For Developers – Creating a New Release](#for-developers--creating-a-new-release)
+    - [For Users – Installing the App](#for-users--installing-the-app)
+  - [Features](#features)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+    - [Clone](#clone)
+    - [Docker](#docker)
+    - [Quick Start (Subsequent Runs)](#quick-start-subsequent-runs)
+  - [Usage](#usage)
+  - [Project Structure](#project-structure)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+---
+
+## Releases
+
+### For Developers – Creating a New Release
+
+1. Make sure your changes are committed and pushed to the `windows-installer` branch.
+2. Update the version number if needed (e.g. `v1.1.0`).
+3. Create and push a new tag to trigger the build:
+
+   ```bash
+   git checkout windows-installer
+   git pull
+   git tag -a v1.1.0 -m "Release v1.1.0"
+   git push origin v1.1.0
+   ```
+4. GitHub Actions will automatically build the Windows installer and upload it to the **Releases** page.
+
+### For Users – Installing the App
+
+1. Go to the project’s [**Releases**](../../releases/latest) page.
+2. Download the latest file named **`StateArchivesTranscription-Setup.exe`**.
+3. Run the installer and follow the prompts.
+
+   - You can optionally enter your **Google AI API Key** for Gemini.
+   - A desktop shortcut will be created automatically.
+
+4. After installation, open the shortcut to launch the app in your browser.
 
 ---
 
