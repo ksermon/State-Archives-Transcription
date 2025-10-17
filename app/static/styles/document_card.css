@@ -44,10 +44,10 @@
 /*IF USING IMAGES*/
 
 .card {
-    background-color: #b2b2fd;
+    background-color: #ddd;
     color: black;
     width: 100%;
-    width: 400px;
+    width: 200px;
     height: 330px;
     border-radius: 8px;
     box-shadow: rgba(50, 50, 93, 0.15) 0px 20px 40px -10px;
@@ -70,7 +70,7 @@
 
 /* Change the .card-img div to .card-img img to use img*/
 .card-img a,
-.card-img img {
+.card-img div {
     height: 150px;
     width: 90%;
     /* Change this width here to change the width of the color/image */
