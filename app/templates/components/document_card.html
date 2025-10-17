@@ -2,17 +2,13 @@
 <a href="{{ url_for('main.file_view', file_id=file.id) }}" class="card-link">
 <article class="card">
   <div class="card-img">
-      {% if file.preview_image %}
-      <img src="data:image/png;base64,{{ file.preview_image }}" alt="Preview">
-    {% else %}
-      <div class="card-imgs pv delete"></div>
-    {% endif %}
-    
+    <div class="card-imgs pv delete"></div>
   </div>
 
   <div class="project-info">
     <div class="flex">
       <div class="project-title">{{ file.name }}</div>
+      <span class="tag">type</span>
     </div>
     <span class="lighter">{{ file.description or "No description available." }}</span>
   </div>

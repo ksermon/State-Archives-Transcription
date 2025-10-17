@@ -8,20 +8,18 @@
 {% block content %}
     <div class="filelist-header">
         <h1 class="filelist-title">Search Results</h1>
-        <p class="filelist-subtitle">Search Results for "{{ query }}": {{ pagination.total }} file(s) found.</p>
+        <p class="filelist-subtitle">Search Results for "{{ query }}": {{ files|length }} file(s) found.</p>
     </div>
 
     <div class="container">
+        <div class="filter-bar">
+            <p>TODO: Filter Components</p>
+        </div>
 
         <div class="card-grid">
             {% if files %}
                 {% for file in files %}
-                    <div class="file-card">
-                        {% include 'components/document_card.html' %}
-                        <form action="{{ url_for('main.delete_file', file_id=file.id) }}" method="post" style="margin-top: 10px;">
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this file?');">Delete</button>
-                        </form>
-                    </div>
+                    {% include 'components/document_card.html' %}
                 {% endfor %}
             {% else %}
                 <p class="filelist-subtitle">No matching files found.</p>
@@ -29,29 +27,11 @@
         </div>
 
         <div class="pagination">
-            {% if pagination.has_prev %}
-                <button onclick="window.location.href='{{ url_for('main.search_files', searchbar=query, page=pagination.prev_num) }}'">&laquo; Prev</button>
-            {% else %}
-                <button disabled>&laquo; Prev</button>
-            {% endif %}
-        
-            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    {% if page_num == pagination.page %}
-                        <button class="active" disabled>{{ page_num }}</button>
-                    {% else %}
-                        <button onclick="window.location.href='{{ url_for('main.search_files', searchbar=query, page=page_num) }}'">{{ page_num }}</button>
-                    {% endif %}
-                {% else %}
-                    <button disabled>…</button>
-                {% endif %}
-            {% endfor %}
-        
-            {% if pagination.has_next %}
-                <button onclick="window.location.href='{{ url_for('main.search_files', searchbar=query, page=pagination.next_num) }}'">Next &raquo;</button>
-            {% else %}
-                <button disabled>Next &raquo;</button>
-            {% endif %}
+            <button disabled>&laquo; Prev</button>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>Next &raquo;</button>
         </div>
-</div>
+    </div>
 {% endblock content %}
