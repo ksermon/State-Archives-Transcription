@@ -1,18 +1,41 @@
+from flask import (
+    render_template,
+    request,
+    redirect,
+    flash,
+    url_for,
+    abort,
+    jsonify,
+    Response,
+)
 import os
 from flask import render_template, request, redirect, flash, url_for, abort, session, jsonify
 from werkzeug.utils import secure_filename
 from app.main import bp
 from app import db
-from app.models import UploadedFile
 from config import Config
 from .utils import pdf_to_images_base64
 from app.utils.ocr_engine import run_ocr_engine
 import base64
 from app.models import UploadedFile, FilePage
+from dotenv import load_dotenv
+from app.utils.gemini_transcriber import transcribe_images_with_gemini
+from app.utils.text_regions import extract_line_boxes, get_image_dimensions
 import uuid
 
 # Dictionary to store upload progress (in production, use Redis or similar)
 upload_progress = {}
+
+def _align_boxes_to_lines(boxes, line_count):
+    if line_count <= 0:
+        return []
+    boxes = boxes or []
+    boxes = boxes[:line_count]
+    if len(boxes) < line_count:
+        boxes.extend([None] * (line_count - len(boxes)))
+    return boxes
+
+load_dotenv()
 
 def allowed_file(filename):
     return (
@@ -26,9 +49,18 @@ def startpage():
 
 @bp.route("/list", methods=["GET"])
 def file_list():
-    # Display the main page with a list of uploaded files
-    files = UploadedFile.query.all()
-    return render_template("FileList.html", files=files)
+    page = request.args.get("page", 1, type=int)
+    per_page = 3
+    pagination = UploadedFile.query.paginate(page=page, per_page=per_page, error_out=False)
+    files = pagination.items
+    for f in files:
+        first_page = FilePage.query.filter_by(file_id=f.id).order_by(FilePage.page_number).first()
+        if first_page:
+            f.preview_image = base64.b64encode(first_page.image).decode("utf-8")
+        else:
+            f.preview_image = None
+
+    return render_template("FileList.html", files=files, pagination=pagination)
 
 @bp.route("/delete/<int:file_id>", methods=["POST"])
 def delete_file(file_id):
@@ -46,43 +78,56 @@ def delete_file(file_id):
 def file_upload():
     if request.method == "GET":
         return render_template("FileUpload.html")
+        
     if "file" not in request.files:
         flash("No file part in the request.")
         return redirect(url_for("main.file_list"))
+        
     file = request.files["file"]
     if file.filename == "":
         flash("No file selected.")
         return redirect(url_for("main.file_list"))
+        
     if file and allowed_file(file.filename):
-        try:
-            file_name = secure_filename(file.filename)
-            file_content = file.read()
-            images = pdf_to_images_base64(file_content)
-            custom_name = request.form.get("name") or file_name
-            description = request.form.get("description", "")
-            upload_id = request.form.get("upload_id", str(uuid.uuid4()))
+        file_name = secure_filename(file.filename)
+        file_content = file.read()
+        images = pdf_to_images_base64(file_content)
+        custom_name = request.form.get("name") or file_name
+        description = request.form.get("description", "")
+        # Get the selected transcription method from the form
+        transcription_method = request.form.get("transcription_method", "trocr")
 
-            # Store total page count for this upload
-            total_pages = len(images)
-            upload_progress[upload_id] = {
-                'total': total_pages,
-                'processed': 0,
-                'file_id': None
-            }
+        # Mark unceratin characters
+        mark_uncertainty = "mark_uncertainty" in request.form 
 
-            # Save the file record first
-            db_file = UploadedFile(
-                name=custom_name,
-                content=file_content,
-                description=description
-            )
-            db.session.add(db_file)
-            db.session.commit() 
-            
-            upload_progress[upload_id]['file_id'] = db_file.id
+        # Save the file record first
+        db_file = UploadedFile(
+            name=custom_name,
+            content=file_content,
+            description=description
+        )
+        db.session.add(db_file)
+        db.session.commit()
 
-            # For each image, run OCR and save as FilePage
-            print(f"Number of images: {total_pages}")
+        # Branch logic based on the selected transcription method
+        print(transcription_method)
+        if transcription_method == "gemini":
+            batch_size = 10
+            for i in range(0, len(images), batch_size):
+                batch_images = images[i:i + batch_size]
+                transcriptions = transcribe_images_with_gemini(batch_images,mark_uncertainty=mark_uncertainty )
+
+                for idx, (img_base64, transcription_text) in enumerate(zip(batch_images, transcriptions)):
+                    page_number = i + idx + 1
+                    img_bytes = base64.b64decode(img_base64)
+                    db_page = FilePage(
+                        file_id=db_file.id,
+                        page_number=page_number,
+                        image=img_bytes,
+                        transcription=transcription_text
+                    )
+                    db.session.add(db_page)
+        else: # Default to 'trocr'
             for idx, img_base64 in enumerate(images):
                 transcription = run_ocr_engine(img_base64)
                 img_bytes = base64.b64decode(img_base64)
@@ -93,55 +138,11 @@ def file_upload():
                     transcription=transcription
                 )
                 db.session.add(db_page)
-                db.session.commit()  # Commit each page for real-time updates
-                
-                # Update progress
-                upload_progress[upload_id]['processed'] = idx + 1
-                print(f"Page {idx + 1}/{total_pages} processed")
+        
+        db.session.commit()
 
-            # Clean up progress tracking after completion
-            if upload_id in upload_progress:
-                del upload_progress[upload_id]
-
-            return jsonify({
-                'success': True,
-                'file_id': db_file.id,
-                'redirect_url': url_for("main.file_view", file_id=db_file.id)
-            })
-        except Exception as e:
-            import traceback
-            print("Upload error:", traceback.format_exc())
-            return jsonify({'success': False, 'error': str(e)}), 500
-    else:
-        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
-
-# Endpoint to check upload progress
-@bp.route("/upload_progress/<upload_id>", methods=["GET"])
-def upload_progress_status(upload_id):
-    if upload_id in upload_progress:
-        progress = upload_progress[upload_id]
-        return jsonify({
-            'total': progress['total'],
-            'processed': progress['processed'],
-            'file_id': progress['file_id']
-        })
-    else:
-        return jsonify({'error': 'Upload not found'}), 404
-
-# Endpoint to check processing status
-@bp.route("/file_processing_status/<int:file_id>", methods=["GET"])
-def file_processing_status(file_id):
-    uploaded_file = UploadedFile.query.get(file_id)
-    if not uploaded_file:
-        return jsonify({'error': 'File not found'}), 404
-    
-    # Count how many pages have been processed
-    processed_pages = FilePage.query.filter_by(file_id=file_id).count()
-    # Try to get the total from upload_progress if available
-    for progress in upload_progress.values():
-        if progress.get('file_id') == file_id:
-            total_pages = progress['total']
-            break
+        flash(f'File "{file_name}" uploaded and transcribed using {transcription_method.upper()}!')
+        return redirect(url_for("main.file_view", file_id=db_file.id))
     else:
         # Fallback: parse PDF
         from .utils import pdf_to_images_base64
@@ -187,6 +188,10 @@ def file_view(file_id):
     image_base64 = base64.b64encode(current_page.image).decode("utf-8")
     transcription = current_page.transcription or "No transcription available."
 
+    transcription_lines = transcription.splitlines() or [transcription]
+    line_boxes = extract_line_boxes(current_page.image)
+    line_boxes = _align_boxes_to_lines(line_boxes, len(transcription_lines))
+    dimensions = get_image_dimensions(current_page.image)
     return render_template(
         "FileView.html",
         file_id=uploaded_file.id,
@@ -194,10 +199,47 @@ def file_view(file_id):
         description=uploaded_file.description or "No description available.",
         image=image_base64,
         transcription=transcription,
+        transcription_lines=transcription_lines,
+        line_boxes=line_boxes,
+        image_dimensions=dimensions,
         page=page,
         total_pages=total_pages,
         processing=False
     )
+
+
+@bp.route("/api/files/<int:file_id>/pages/<int:page>/transcription", methods=["PUT"])
+def update_transcription(file_id, page):
+    page_obj = FilePage.query.filter_by(file_id=file_id, page_number=page).first()
+    if not page_obj:
+        abort(404)
+
+    data = request.get_json(silent=True) or {}
+    new_text = data.get("transcription", "")
+    page_obj.transcription = new_text
+    db.session.commit()
+
+    return jsonify({"status": "ok"})
+
+
+@bp.route("/download/<int:file_id>/transcription", methods=["GET"])
+def download_transcription(file_id):
+    uploaded_file = UploadedFile.query.get(file_id)
+    if not uploaded_file:
+        abort(404)
+
+    pages = (
+        FilePage.query.filter_by(file_id=file_id)
+        .order_by(FilePage.page_number)
+        .all()
+    )
+
+    combined_text = "\n\n".join((page.transcription or "").strip() for page in pages)
+
+    filename = f"{secure_filename(uploaded_file.name.rsplit('.', 1)[0]) or 'transcription'}.txt"
+    response = Response(combined_text, mimetype="text/plain")
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return response
 
 @bp.route("/search", methods=["GET"])
 def search_files():
@@ -207,6 +249,8 @@ def search_files():
         flash("Please enter a search term.")
         return redirect(url_for("main.file_list"))
 
+    page = request.args.get("page", 1, type=int)
+    per_page = 3
     # Search UploadedFile name/description or any FilePage transcription
     search_results = (
         UploadedFile.query
@@ -217,10 +261,17 @@ def search_files():
             (FilePage.transcription.ilike(f"%{query}%"))
         )
         .distinct()
-        .all()
     )
-
+    pagination = search_results.paginate(page=page, per_page=per_page, error_out=False)
+    files = pagination.items
     if not search_results:
         flash("No files matched your search.")
 
-    return render_template("SearchResults.html", files=search_results, query=query)
+    for f in files:
+        first_page = FilePage.query.filter_by(file_id=f.id).order_by(FilePage.page_number).first()
+        if first_page:
+            f.preview_image = base64.b64encode(first_page.image).decode("utf-8")
+        else:
+            f.preview_image = None
+
+    return render_template("SearchResults.html", files=search_results, query=query, pagination=pagination)

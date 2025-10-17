@@ -5,3 +5,4 @@ app/static/uploads
 *.db
 app/models
 /venv
+.env

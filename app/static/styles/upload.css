@@ -261,3 +261,44 @@ button:active {
         opacity: 1;
     }
 }
+
+.transcription-options {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #353535;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.transcription-options label {
+    margin-bottom: 0.8rem;
+    display: block;
+}
+
+.radio-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.radio-buttons input[type="radio"] {
+    display: none; /* Hide the default radio button */
+}
+
+.radio-label {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid #404c5d;
+    color: #979797;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+/* Style for the selected radio button's label */
+.radio-buttons input[type="radio"]:checked + .radio-label {
+    background-color: #41465b;
+    color: #eee;
+    box-shadow: 0 0 10px rgba(65, 70, 91, 0.7);
+}
