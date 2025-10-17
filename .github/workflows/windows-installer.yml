@@ -1,0 +1,40 @@
+name: Build Windows Installer
+
+on:
+  push:
+    tags: ['v*']   # create a release when you push a tag like v1.0.0
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller waitress python-dotenv
+
+      - name: Build EXE
+        run: pyinstaller app.spec --noconfirm --clean
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes
+
+      - name: Build Installer
+        run: |
+          "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/StateArchivesTranscription-Setup.exe
+            dist/StateArchivesTranscription.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
