@@ -42,15 +42,6 @@ git clone https://github.com/ksermon/State-Archives-Transcription.git
 cd State-Archives-Transcription
 ```
 
-### Add API Key
-
-Go to https://aistudio.google.com/apikey and create a Google AI API key. 
-Create a file called `.env` in the root directory and add your api key:
-
-```
-GOOGLE_AI_API_KEY=somenumbersandletters 
-```
-
 ### Docker
 From the project root run:
 ```bash

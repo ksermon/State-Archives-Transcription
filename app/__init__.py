@@ -1,5 +1,5 @@
 import os
-import re
+
 from flask import Flask
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
@@ -12,9 +12,6 @@ def create_app(config_class=Config):
 
     db.init_app(app)
 
-    
-
-
     # Ensure the instance folder exists
     try:
         os.makedirs(app.instance_path)
@@ -24,12 +21,5 @@ def create_app(config_class=Config):
     # Register Blueprints
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
-
-    @app.template_filter('markdown_bold_to_html')
-    def markdown_bold_to_html(s):
-        if not s:
-            return ""
-        s = str(s)
-        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', s)
 
     return app

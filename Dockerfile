@@ -36,5 +36,5 @@ EXPOSE 5000
 
 RUN chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["/bin/bash","/app/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["flask", "run"]
